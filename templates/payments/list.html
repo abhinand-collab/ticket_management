@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Transactions{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2>Payment Transactions</h2>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Registration</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Payment ID</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.razorpay_order_id }}</td>
+                    <td>{{ payment.registration.name }} ({{ payment.registration.ticket.name }})</td>
+                    <td>₹{{ payment.amount }}</td>
+                    <td>
+                        <span class="badge {% if payment.status == 'paid' %}bg-success{% elif payment.status == 'created' %}bg-info{% else %}bg-danger{% endif %}">
+                            {{ payment.status|title }}
+                        </span>
+                    </td>
+                    <td>{{ payment.razorpay_payment_id|default:"-" }}</td>
+                    <td>{{ payment.created_at|date:"M d, Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">No transactions found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

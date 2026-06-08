@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Registration Listing{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Registration Listing</h2>
+    <a href="{% url 'registrations:create' %}" class="btn btn-primary">Add Registration</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Ticket</th>
+                    <th>Price</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Reg Status</th>
+                    <th>Payment Status</th>
+                    <th>Order ID</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reg in registrations %}
+                <tr>
+                    <td>#{{ reg.id }}</td>
+                    <td>{{ reg.ticket.name }}</td>
+                    <td>₹{{ reg.ticket.price }}</td>
+                    <td>{{ reg.name }}</td>
+                    <td>{{ reg.email }}</td>
+                    <td>{{ reg.phone }}</td>
+                    <td>
+                        <span class="badge {% if reg.status == 'completed' %}bg-success{% elif reg.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ reg.status|title }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if reg.order.transaction %}
+                            <span class="badge {% if reg.order.transaction.status == 'paid' %}bg-success{% elif reg.order.transaction.status == 'created' %}bg-info{% else %}bg-danger{% endif %}">
+                                {{ reg.order.transaction.status|title }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ reg.order.transaction.razorpay_order_id|default:"Manual/Free" }}</small>
+                    </td>
+                    <td>
+                        <a href="{% url 'registrations:edit' reg.pk %}" class="btn btn-sm btn-outline-warning">Edit</a>
+                        <a href="{% url 'registrations:delete' reg.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                    </td>
+                </tr>
+{% empty %}
+
+                <tr>
+                    <td colspan="8" class="text-center text-muted">No registrations found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

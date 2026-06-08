@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
-
 class ActivityLogsConfig(AppConfig):
-    name = 'activity_logs'
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.activity_logs'

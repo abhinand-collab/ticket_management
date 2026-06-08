@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2>{{ title }}</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                {% if errors %}
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            {% for field, error_list in errors.items %}
+                                <li><strong>{{ field|title }}:</strong> {{ error_list|join:", " }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Ticket Name</label>
+                        <input type="text" name="name" class="form-control" value="{% if form_data.name %}{{ form_data.name }}{% elif ticket %}{{ ticket.name }}{% endif %}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ticket Type</label>
+                        <select name="ticket_type" class="form-select" id="id_ticket_type" required>
+                            <option value="free" {% if form_data.ticket_type == 'free' or ticket.ticket_type == 'free' %}selected{% endif %}>Free</option>
+                            <option value="paid" {% if form_data.ticket_type == 'paid' or ticket.ticket_type == 'paid' %}selected{% endif %}>Paid</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="price_container" style="{% if form_data.ticket_type == 'paid' or ticket.ticket_type == 'paid' %}{% else %}display: none;{% endif %}">
+                        <label class="form-label">Price (₹)</label>
+                        <input type="number" step="0.01" name="price" class="form-control" value="{% if form_data.price %}{{ form_data.price }}{% elif ticket %}{{ ticket.price }}{% else %}0.00{% endif %}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Quantity Type</label>
+                        <select name="quantity_type" class="form-select" id="id_quantity_type" required>
+                            <option value="unlimited" {% if form_data.quantity_type == 'unlimited' or ticket.quantity_type == 'unlimited' %}selected{% endif %}>Unlimited</option>
+                            <option value="limited" {% if form_data.quantity_type == 'limited' or ticket.quantity_type == 'limited' %}selected{% endif %}>Limited</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="quantity_container" style="{% if form_data.quantity_type == 'limited' or ticket.quantity_type == 'limited' %}{% else %}display: none;{% endif %}">
+                        <label class="form-label">Total Quantity</label>
+                        <input type="number" name="quantity" class="form-control" value="{% if form_data.quantity %}{{ form_data.quantity }}{% elif ticket %}{{ ticket.quantity }}{% endif %}">
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="duplicate_email_check" class="form-check-input" id="id_duplicate_email_check" 
+                               {% if form_data.duplicate_email_check or ticket.duplicate_email_check %}checked{% endif %}>
+                        <label class="form-check-label" for="id_duplicate_email_check">Validate Duplicate Email</label>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="id_is_active" 
+                               {% if ticket %}{% if ticket.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+                        <label class="form-check-label" for="id_is_active">Is Active</label>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Save Ticket</button>
+                        <a href="{% url 'tickets:list' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/Hide fields based on selections
+    const typeSelect = document.getElementById('id_ticket_type');
+    const priceContainer = document.getElementById('price_container');
+    
+    typeSelect.addEventListener('change', function() {
+        if (this.value === 'paid') {
+            priceContainer.style.display = 'block';
+        } else {
+            priceContainer.style.display = 'none';
+        }
+    });
+
+    const quantitySelect = document.getElementById('id_quantity_type');
+    const quantityContainer = document.getElementById('quantity_container');
+    
+    quantitySelect.addEventListener('change', function() {
+        if (this.value === 'limited') {
+            quantityContainer.style.display = 'block';
+        } else {
+            quantityContainer.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}
