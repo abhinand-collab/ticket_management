@@ -20,18 +20,43 @@
             {% endfor %}
         {% endif %}
 
-        <form method="POST">
+        {% if errors %}
+            <div class="alert alert-danger small py-2">
+                {% if errors.non_field_errors %}
+                    {{ errors.non_field_errors|join:", " }}
+                {% else %}
+                    Invalid username or password.
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <form id="login-form" method="POST">
             {% csrf_token %}
             <div class="mb-3">
                 <label class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" required>
+                <input type="text" name="username" class="form-control" value="{{ form_data.username|default:'' }}" required>
             </div>
             <div class="mb-4">
                 <label class="form-label">Password</label>
                 <input type="password" name="password" class="form-control" required>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Login</button>
+            <button type="submit" id="submit-btn" class="btn btn-primary w-100">
+                <span id="btn-text">Login</span>
+                <span id="btn-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            </button>
         </form>
     </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function() {
+            const btn = document.getElementById('submit-btn');
+            const text = document.getElementById('btn-text');
+            const spinner = document.getElementById('btn-spinner');
+            
+            btn.disabled = true;
+            text.textContent = 'Authenticating...';
+            spinner.classList.remove('d-none');
+        });
+    </script>
 </body>
 </html>

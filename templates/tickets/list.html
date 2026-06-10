@@ -18,6 +18,7 @@
                     <th>Price</th>
                     <th>Quantity</th>
                     <th>Availability</th>
+                    <th>Duplicate Check</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -30,6 +31,13 @@
                     <td>₹{{ ticket.price }}</td>
                     <td>{{ ticket.quantity|default:"Unlimited" }}</td>
                     <td>{{ ticket.available_slots|default:"N/A" }}</td>
+                    <td>
+                        {% if ticket.duplicate_email_check %}
+                        <span class="badge bg-success">Yes</span>
+                        {% else %}
+                        <span class="badge bg-danger">No</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if ticket.is_active %}
                         <span class="text-success">Active</span>
@@ -44,11 +52,13 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="text-center text-muted">No tickets found.</td>
+                    <td colspan="8" class="text-center text-muted">No tickets found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+{% include 'includes/pagination.html' with page_obj=tickets %}
 {% endblock %}

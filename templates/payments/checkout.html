@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout - Payment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Secure Payment</h4>
+            </div>
+            <div class="card-body text-center py-5">
+                <h3>Order #{{ order.id }}</h3>
+                <p class="text-muted">Total Amount to Pay</p>
+                <h1 class="display-4 text-primary mb-4">₹{{ order.total_amount }}</h1>
+                
+                <p>Click the button below to complete your payment via Razorpay.</p>
+                
+                <button id="rzp-button1" class="btn btn-success btn-lg px-5">Pay Now</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+var options = {
+    "key": "{{ razorpay_key_id }}",
+    "amount": "{{ amount }}",
+    "currency": "{{ currency }}",
+    "name": "Event Registration System",
+    "description": "Payment for Order #{{ order.id }}",
+    "image": "https://example.com/your_logo",
+    "order_id": "{{ razorpay_order_id }}",
+    "callback_url": "{{ callback_url }}",
+    "prefill": {
+        "name": "{{ order.buyer.get_full_name }}",
+        "email": "{{ order.buyer.email }}",
+        "contact": ""
+    },
+    "notes": {
+        "order_id": "{{ order.id }}"
+    },
+    "theme": {
+        "color": "#0d6efd"
+    }
+};
+var rzp1 = new Razorpay(options);
+document.getElementById('rzp-button1').onclick = function(e){
+    rzp1.open();
+    e.preventDefault();
+}
+</script>
+{% endblock %}

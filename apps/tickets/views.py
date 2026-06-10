@@ -1,13 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from .models import Ticket
 from .serializers import TicketSerializer
 from apps.activity_logs.utils import log_action
 
 @login_required
 def ticket_list(request):
-    tickets = Ticket.objects.all().order_by('-created_at')
+    ticket_list = Ticket.objects.filter(is_active=True).order_by('-created_at')
+    paginator = Paginator(ticket_list, 10) # Show 10 tickets per page
+    page_number = request.GET.get('page')
+    tickets = paginator.get_page(page_number)
     return render(request, 'tickets/list.html', {'tickets': tickets})
 
 @login_required
@@ -56,9 +60,9 @@ def ticket_delete(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     if request.method == 'POST':
         ticket_name = ticket.name
-        # Log BEFORE deleting so we capture the name and ID
+        ticket.is_active = False
+        ticket.save()
         log_action(request.user, 'ticket_delete', ticket, request)
-        ticket.delete()
         messages.success(request, f'Ticket "{ticket_name}" deleted successfully.')
         return redirect('tickets:list')
     return render(request, 'tickets/delete_confirm.html', {'ticket': ticket})

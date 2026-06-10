@@ -23,8 +23,11 @@
             <tbody>
                 {% for payment in payments %}
                 <tr>
-                    <td>{{ payment.razorpay_order_id }}</td>
-                    <td>{{ payment.registration.name }} ({{ payment.registration.ticket.name }})</td>
+                    <td>Order #{{ payment.order.id }}</td>
+                    <td>
+                        {{ payment.order.buyer.username|default:"Guest" }} 
+                        <small class="text-muted">({{ payment.order.attendees.count }} tickets)</small>
+                    </td>
                     <td>₹{{ payment.amount }}</td>
                     <td>
                         <span class="badge {% if payment.status == 'paid' %}bg-success{% elif payment.status == 'created' %}bg-info{% else %}bg-danger{% endif %}">
@@ -43,4 +46,6 @@
         </table>
     </div>
 </div>
+
+{% include 'includes/pagination.html' with page_obj=payments %}
 {% endblock %}

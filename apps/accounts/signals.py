@@ -7,5 +7,5 @@ def on_login(sender, request, user, **kwargs):
     log_action(user, 'login', request=request)
 
 @receiver(user_logged_out)
-def on_login(sender, request, user, **kwargs):
+def on_logout(sender, request, user, **kwargs):
     log_action(user, 'logout', request=request)

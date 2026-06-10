@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}User Registration{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Create Your Account</h4>
+            </div>
+            <div class="card-body">
+                <div id="global-error" class="alert alert-danger d-none"></div>
+
+                <form id="register-form" method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" 
+                               class="form-control {% if errors.username %}is-invalid{% endif %}" 
+                               value="{{ form_data.username|default:'' }}" 
+                               placeholder="e.g. john_doe (No spaces)">
+                        {% if errors.username %}
+                            <div class="invalid-feedback">{{ errors.username|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" 
+                               class="form-control {% if errors.email %}is-invalid{% endif %}" 
+                               value="{{ form_data.email|default:'' }}" 
+                               placeholder="e.g. john@example.com">
+                        {% if errors.email %}
+                            <div class="invalid-feedback">{{ errors.email|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name</label>
+                            <input type="text" name="first_name" 
+                                   class="form-control {% if errors.first_name %}is-invalid{% endif %}" 
+                                   value="{{ form_data.first_name|default:'' }}" 
+                                   placeholder="e.g. John">
+                            {% if errors.first_name %}
+                                <div class="invalid-feedback">{{ errors.first_name|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" name="last_name" 
+                                   class="form-control {% if errors.last_name %}is-invalid{% endif %}" 
+                                   value="{{ form_data.last_name|default:'' }}" 
+                                   placeholder="e.g. Doe">
+                            {% if errors.last_name %}
+                                <div class="invalid-feedback">{{ errors.last_name|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" 
+                               class="form-control {% if errors.password %}is-invalid{% endif %}" 
+                               placeholder="Choose a strong password">
+                        <div class="form-text small text-muted">
+                            Must be 8+ characters with uppercase, lowercase, number, and special character (!@#$%^&*).
+                        </div>
+                        {% if errors.password %}
+                            <div class="invalid-feedback">{{ errors.password|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" name="password_confirm" 
+                               class="form-control {% if errors.password_confirm %}is-invalid{% endif %}" 
+                               placeholder="Re-enter password">
+                        {% if errors.password_confirm %}
+                            <div class="invalid-feedback">{{ errors.password_confirm|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" id="submit-btn" class="btn btn-primary w-100">
+                        <span id="btn-text">Register</span>
+                        <span id="btn-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                </form>
+                <div class="mt-3 text-center">
+                    Already have an account? <a href="{% url 'accounts:user_login' %}">Login here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('register-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const btnSpinner = document.getElementById('btn-spinner');
+    const globalError = document.getElementById('global-error');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Reset UI states before processing
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+        globalError.classList.add('d-none');
+        globalError.textContent = '';
+
+        submitBtn.disabled = true;
+        btnText.textContent = 'Creating account...';
+        btnSpinner.classList.remove('d-none');
+
+        const formData = new FormData(form);
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (response.ok && data.success) {
+                window.location.href = data.redirect_url;
+                return;
+            }
+            
+            // Handle Errors from Backend
+            if (data.errors) {
+                for (let field in data.errors) {
+                    const input = form.querySelector(`[name="${field}"]`);
+                    const errMsg = data.errors[field].join(', ');
+                    
+                    if (input) {
+                        input.classList.add('is-invalid');
+                        const feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        feedback.textContent = errMsg;
+                        input.parentNode.appendChild(feedback);
+                    } else {
+                        globalError.textContent = errMsg;
+                        globalError.classList.remove('d-none');
+                    }
+                }
+            } else if (data.message) {
+                globalError.textContent = data.message;
+                globalError.classList.remove('d-none');
+            }
+            
+            submitBtn.disabled = false;
+            btnText.textContent = 'Register';
+            btnSpinner.classList.add('d-none');
+            window.scrollTo(0, 0);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            globalError.textContent = 'An unexpected error occurred. Please try again.';
+            globalError.classList.remove('d-none');
+            submitBtn.disabled = false;
+            btnText.textContent = 'Register';
+            btnSpinner.classList.add('d-none');
+        });
+    });
+</script>
+{% endblock %}

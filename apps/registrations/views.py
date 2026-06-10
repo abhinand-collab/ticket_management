@@ -1,14 +1,26 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from .models import Registration, RegistrationOrder
 from .serializers import RegistrationSerializer
 from apps.tickets.models import Ticket
 from apps.activity_logs.utils import log_action
 
 @login_required
+def order_list(request):
+    order_list = RegistrationOrder.objects.select_related('buyer', 'transaction').all().order_by('-created_at')
+    paginator = Paginator(order_list, 10)
+    page_number = request.GET.get('page')
+    orders = paginator.get_page(page_number)
+    return render(request, 'registrations/order_list.html', {'orders': orders})
+
+@login_required
 def registration_list(request):
-    registrations = Registration.objects.select_related('ticket', 'order__transaction').all().order_by('-created_at')
+    registration_list = Registration.objects.select_related('ticket', 'order__transaction').filter(is_active=True).order_by('-created_at')
+    paginator = Paginator(registration_list, 10) # Show 10 registrations per page
+    page_number = request.GET.get('page')
+    registrations = paginator.get_page(page_number)
     return render(request, 'registrations/list.html', {'registrations': registrations})
 
 @login_required
@@ -26,6 +38,7 @@ def registration_create(request):
             order = RegistrationOrder.objects.create(
                 buyer=request.user,
                 total_amount=ticket.price,
+                payment_method='admin',
                 status='completed' # Admin entry is usually considered pre-approved/paid
             )
             registration = serializer.save(order=order, status='completed')
@@ -76,8 +89,9 @@ def registration_delete(request, pk):
     registration = get_object_or_404(Registration, pk=pk)
     if request.method == 'POST':
         reg_name = registration.name
+        registration.is_active = False
+        registration.save()
         log_action(request.user, 'registration_delete', registration, request)
-        registration.delete()
         messages.success(request, f'Registration for "{reg_name}" deleted successfully.')
         return redirect('registrations:list')
     return render(request, 'registrations/delete_confirm.html', {'registration': registration})

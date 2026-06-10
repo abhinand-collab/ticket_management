@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}User Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">User Login</h4>
+            </div>
+            <div class="card-body">
+                <div id="global-error" class="alert alert-danger d-none"></div>
+
+                <form id="login-form" method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" autofocus placeholder="Enter your username">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="Enter your password">
+                    </div>
+                    <button type="submit" id="submit-btn" class="btn btn-success w-100">
+                        <span id="btn-text">Login</span>
+                        <span id="btn-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                </form>
+                <div class="mt-3 text-center">
+                    Don't have an account? <a href="{% url 'accounts:user_register' %}">Register here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('login-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const btnSpinner = document.getElementById('btn-spinner');
+    const globalError = document.getElementById('global-error');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Reset UI states
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+        globalError.classList.add('d-none');
+        globalError.textContent = '';
+
+        submitBtn.disabled = true;
+        btnText.textContent = 'Authenticating...';
+        btnSpinner.classList.remove('d-none');
+
+        const formData = new FormData(form);
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (response.ok && data.success) {
+                window.location.href = data.redirect_url;
+                return;
+            }
+            
+            // Handle Errors from Backend
+            if (data.errors) {
+                for (let field in data.errors) {
+                    const input = form.querySelector(`[name="${field}"]`);
+                    const errMsg = data.errors[field].join(', ');
+                    
+                    if (input) {
+                        input.classList.add('is-invalid');
+                        const feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        feedback.textContent = errMsg;
+                        input.parentNode.appendChild(feedback);
+                    } else {
+                        globalError.textContent = errMsg;
+                        globalError.classList.remove('d-none');
+                    }
+                }
+            } else if (data.message || data.error) {
+                globalError.textContent = data.message || data.error;
+                globalError.classList.remove('d-none');
+            } else {
+                globalError.textContent = "Invalid username or password.";
+                globalError.classList.remove('d-none');
+            }
+            
+            submitBtn.disabled = false;
+            btnText.textContent = 'Login';
+            btnSpinner.classList.add('d-none');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            globalError.textContent = 'An unexpected error occurred. Please try again.';
+            globalError.classList.remove('d-none');
+            submitBtn.disabled = false;
+            btnText.textContent = 'Login';
+            btnSpinner.classList.add('d-none');
+        });
+    });
+</script>
+{% endblock %}

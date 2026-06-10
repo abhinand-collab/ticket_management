@@ -11,6 +11,13 @@ class TicketSerializer(serializers.ModelSerializer):
         price = data.get('price')
         quantity_type = data.get('quantity_type')
         quantity = data.get('quantity')
+        max_per_order = data.get('max_per_order')
+
+        # Max Per Order validation
+        if max_per_order is not None and max_per_order < 1:
+            raise serializers.ValidationError(
+                {'max_per_order': 'Maximum tickets per order must be at least 1.'}
+            )
 
         # Price must be > 0 for paid tickets
         if ticket_type == 'paid':

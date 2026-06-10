@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Event Registration System{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
         body { background-color: #f8f9fa; }
         .sidebar { min-height: 100vh; background: #343a40; color: white; }
@@ -17,13 +18,39 @@
         <div class="row">
             <!-- Sidebar -->
             <nav class="col-md-2 d-none d-md-block sidebar py-4">
-                <h4 class="px-3 mb-4">Event Admin</h4>
-                <a href="{% url 'tickets:list' %}">Ticket Listing</a>
-                <a href="{% url 'registrations:list' %}">Registration Listing</a>
-                <a href="{% url 'activity_logs:list' %}">Activity Logs</a>
-                <a href="{% url 'payments:list' %}">Payment Transactions</a>
-                <hr>
-                <a href="{% url 'accounts:logout' %}" class="text-danger">Logout</a>
+                {% if "/admin-panel/" in request.path or "/payments/" == request.path %}
+                    {# Hide sidebar ONLY on the login page #}
+                    {% if request.path != "/admin-panel/auth/login/" %}
+                        <h4 class="px-3 mb-4">Event Admin</h4>
+                        <a href="{% url 'tickets:list' %}">Ticket Listing</a>
+                        <a href="{% url 'admin_accounts:user_list' %}">User Management</a>
+                        <a href="{% url 'registrations:order_list' %}">Order Listing</a>
+
+                        <a href="{% url 'registrations:list' %}">Attendee Listing</a>
+                        <a href="{% url 'activity_logs:list' %}">Activity Logs</a>
+                        <a href="{% url 'payments:list' %}">Payment Transactions</a>
+                        <hr>
+                        <a href="{% url 'admin_accounts:logout' %}" class="text-danger">Logout</a>
+                    {% endif %}
+                {% else %}
+                    {# Public Portal Sidebar #}
+                    <h4 class="px-3 mb-4">Event Portal</h4>
+                    <a href="{% url 'public:ticket_list' %}">Browse Tickets</a>
+                    <hr>
+                    {% if request.user.is_authenticated %}
+                        {% if request.user.is_staff %}
+                            <div class="px-3 mb-2 small text-info">Logged in as Administrator</div>
+                            <a href="{% url 'tickets:list' %}" class="fw-bold text-info">Admin Dashboard</a>
+                            <a href="{% url 'admin_accounts:logout' %}" class="text-danger">Logout</a>
+                        {% else %}
+                            <div class="px-3 mb-2 small text-light">Signed in as: {{ request.user.username }}</div>
+                            <a href="{% url 'accounts:user_logout' %}" class="text-danger">Logout</a>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'accounts:user_login' %}">Login</a>
+                        <a href="{% url 'accounts:user_register' %}">Register</a>
+                    {% endif %}
+                {% endif %}
             </nav>
 
             <!-- Main Content -->

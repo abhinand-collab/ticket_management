@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Browse Tickets{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2>Available Tickets</h2>
+    <p class="text-muted">Select the tickets you wish to purchase.</p>
+</div>
+
+<form action="{% url 'public:register_form' %}" method="GET">
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for ticket in tickets %}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">{{ ticket.name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <span class="badge {% if ticket.ticket_type == 'paid' %}bg-info{% else %}bg-secondary{% endif %}">
+                            {{ ticket.ticket_type|title }}
+                        </span>
+                    </h6>
+                    <p class="card-text">
+                        <strong>Price:</strong> ₹{{ ticket.price }}<br>
+                        <strong>Availability:</strong> 
+                        {% if ticket.quantity_type == 'unlimited' %}
+                            Unlimited
+                        {% else %}
+                            {{ ticket.available_slots }} slots left
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    {% if ticket.is_available %}
+                        <div class="row align-items-center">
+                            <div class="col-6">
+                                <label class="small text-muted mb-1 d-block">Quantity</label>
+                                <input type="number" 
+                                       name="qty_{{ ticket.id }}" 
+                                       class="form-control qty-input" 
+                                       value="0" 
+                                       min="0" 
+                                       {% if ticket.quantity_type == 'unlimited' %}
+                                           max="{{ ticket.max_per_order }}"
+                                           data-max="{{ ticket.max_per_order }}"
+                                       {% else %}
+                                           {% if ticket.available_slots < ticket.max_per_order %}
+                                               max="{{ ticket.available_slots }}"
+                                               data-max="{{ ticket.available_slots }}"
+                                           {% else %}
+                                               max="{{ ticket.max_per_order }}"
+                                               data-max="{{ ticket.max_per_order }}"
+                                           {% endif %}
+                                       {% endif %}
+                                >
+                            </div>
+                            <div class="col-6 pt-3">
+                                <small class="text-muted d-block" style="font-size: 0.75rem; line-height: 1.1;">
+                                    {% if ticket.quantity_type == 'unlimited' %}
+                                        Max {{ ticket.max_per_order }} per order
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    {% else %}
+                        <button class="btn btn-secondary btn-sm w-100" disabled>Sold Out</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">No tickets are currently available.</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if tickets %}
+    <!-- Selection Summary Banner -->
+    <div class="mt-5 p-3 bg-white border-top shadow sticky-bottom" style="bottom: 0; left: 0; right: 0; z-index: 1000; margin-bottom: -1.5rem; margin-left: -1.5rem; margin-right: -1.5rem;">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="selection-info">
+                    <div id="selection-error" class="text-danger fw-bold d-none">
+                        <i class="bi bi-exclamation-triangle-fill"></i> <span id="error-text">Please select at least one ticket to continue.</span>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button type="submit" id="submit-order-btn" class="btn btn-primary btn-lg px-5 shadow-sm">
+                        Continue to Checkout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</form>
+
+<script>
+    const MAX_GLOBAL = {{ settings.MAX_TOTAL_TICKETS_PER_ORDER|default:100 }};
+    const selectionError = document.getElementById('selection-error');
+    const errorText = document.getElementById('error-text');
+
+    // Industry standard: Ensure users don't bypass "max" by typing
+    document.querySelectorAll('.qty-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const max = parseInt(this.getAttribute('data-max'));
+            let val = parseInt(this.value);
+            
+            if (isNaN(val) || val < 0) {
+                this.value = 0;
+            } else if (val > max) {
+                this.value = max;
+            }
+            
+            // Hide error if user is interacting
+            selectionError.classList.add('d-none');
+        });
+
+        // Prevent typing non-numeric characters
+        input.addEventListener('keydown', function(e) {
+            if (['e', 'E', '+', '-'].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // Form validation before submit
+    document.querySelector('form').addEventListener('submit', function(e) {
+        let total = 0;
+        document.querySelectorAll('.qty-input').forEach(input => {
+            total += parseInt(input.value) || 0;
+        });
+
+        if (total === 0) {
+            e.preventDefault();
+            errorText.textContent = 'Please select at least one ticket to continue.';
+            selectionError.classList.remove('d-none');
+        } else if (total > MAX_GLOBAL) {
+            e.preventDefault();
+            errorText.textContent = `Maximum limit of ${MAX_GLOBAL} tickets per order exceeded (Total: ${total}).`;
+            selectionError.classList.remove('d-none');
+        }
+    });
+</script>
+{% endblock %}

@@ -9,24 +9,14 @@
 
 <div class="row">
     <div class="col-md-6">
-        <div class="card">
+        <div class="card shadow-sm">
             <div class="card-body">
-                {% if errors %}
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            {% for field, error_list in errors.items %}
-                                <li><strong>{{ field|title }}:</strong> {{ error_list|join:", " }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
-                <form method="POST">
+                <form id="reg-form" method="POST">
                     {% csrf_token %}
                     
                     <div class="mb-3">
                         <label class="form-label">Select Ticket</label>
-                        <select name="ticket" class="form-select" required>
+                        <select name="ticket" class="form-select {% if errors.ticket %}is-invalid{% endif %}" required>
                             <option value="">-- Choose Ticket --</option>
                             {% for t in tickets %}
                                 <option value="{{ t.id }}" {% if form_data.ticket == t.id|stringformat:"i" or registration.ticket.id == t.id %}selected{% endif %}>
@@ -34,37 +24,64 @@
                                 </option>
                             {% endfor %}
                         </select>
+                        {% if errors.ticket %}
+                            <div class="invalid-feedback">{{ errors.ticket|join:", " }}</div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Full Name</label>
-                        <input type="text" name="name" class="form-control" value="{% if form_data.name %}{{ form_data.name }}{% elif registration %}{{ registration.name }}{% endif %}" required>
+                        <input type="text" name="name" 
+                               class="form-control {% if errors.name %}is-invalid{% endif %}" 
+                               value="{% if form_data.name %}{{ form_data.name }}{% elif registration %}{{ registration.name }}{% endif %}" 
+                               required>
+                        {% if errors.name %}
+                            <div class="invalid-feedback">{{ errors.name|join:", " }}</div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Email Address</label>
-                        <input type="email" name="email" class="form-control" value="{% if form_data.email %}{{ form_data.email }}{% elif registration %}{{ registration.email }}{% endif %}" required>
+                        <input type="email" name="email" 
+                               class="form-control {% if errors.email %}is-invalid{% endif %}" 
+                               value="{% if form_data.email %}{{ form_data.email }}{% elif registration %}{{ registration.email }}{% endif %}" 
+                               required>
+                        {% if errors.email %}
+                            <div class="invalid-feedback">{{ errors.email|join:", " }}</div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Phone Number</label>
-                        <input type="text" name="phone" class="form-control" value="{% if form_data.phone %}{{ form_data.phone }}{% elif registration %}{{ registration.phone }}{% endif %}" required placeholder="e.g. 9876543210">
+                        <input type="text" name="phone" 
+                               class="form-control {% if errors.phone %}is-invalid{% endif %}" 
+                               value="{% if form_data.phone %}{{ form_data.phone }}{% elif registration %}{{ registration.phone }}{% endif %}" 
+                               required placeholder="e.g. 9876543210">
+                        {% if errors.phone %}
+                            <div class="invalid-feedback">{{ errors.phone|join:", " }}</div>
+                        {% endif %}
                     </div>
 
                     {% if registration %}
                     <div class="mb-3">
                         <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
+                        <select name="status" class="form-select {% if errors.status %}is-invalid{% endif %}">
                             <option value="pending" {% if registration.status == 'pending' %}selected{% endif %}>Pending</option>
                             <option value="completed" {% if registration.status == 'completed' %}selected{% endif %}>Completed</option>
                             <option value="failed" {% if registration.status == 'failed' %}selected{% endif %}>Failed</option>
                             <option value="abandoned" {% if registration.status == 'abandoned' %}selected{% endif %}>Abandoned</option>
                         </select>
+                        {% if errors.status %}
+                            <div class="invalid-feedback">{{ errors.status|join:", " }}</div>
+                        {% endif %}
                     </div>
                     {% endif %}
 
                     <div class="mt-4">
-                        <button type="submit" class="btn btn-primary">Save Registration</button>
+                        <button type="submit" id="submit-btn" class="btn btn-primary px-4">
+                            <span id="btn-text">Save Registration</span>
+                            <span id="btn-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
                         <a href="{% url 'registrations:list' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
                     </div>
                 </form>
@@ -72,4 +89,16 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('reg-form').addEventListener('submit', function() {
+        const btn = document.getElementById('submit-btn');
+        const text = document.getElementById('btn-text');
+        const spinner = document.getElementById('btn-spinner');
+        
+        btn.disabled = true;
+        text.textContent = 'Saving...';
+        spinner.classList.remove('d-none');
+    });
+</script>
 {% endblock %}

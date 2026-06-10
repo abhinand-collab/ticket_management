@@ -7,8 +7,15 @@ class RegistrationOrder(models.Model):
     Groups multiple registrations into a single order/payment.
     Linked to the Buyer (User).
     """
+    PAYMENT_METHOD_CHOICES = [
+        ('razorpay', 'Razorpay'),
+        ('free', 'Free Registration'),
+        ('admin', 'Manual Admin Entry'),
+    ]
+
     buyer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='orders')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='free')
     status = models.CharField(max_length=20, default='pending') # pending, completed, failed
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -33,6 +40,7 @@ class Registration(models.Model):
     phone = models.CharField(max_length=20)
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -43,4 +51,5 @@ class Registration(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.name} - Ticket: {self.ticket.name} (Order #{self.order.id})"
+        order_id = self.order.id if self.order else "N/A"
+        return f"{self.name} - Ticket: {self.ticket.name} (Order #{order_id})"

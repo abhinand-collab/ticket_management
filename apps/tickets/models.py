@@ -9,6 +9,7 @@ class Ticket(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPE_CHOICES)
     quantity = models.PositiveIntegerField(null=True, blank=True)  # only if limited
+    max_per_order = models.PositiveIntegerField(default=10, help_text="Maximum tickets allowed per single purchase.")
     duplicate_email_check = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -20,7 +21,7 @@ class Ticket(models.Model):
     def available_slots(self):
         if self.quantity_type == 'unlimited':
             return None
-        used = self.registrations.filter(status__in=['completed', 'pending']).count()
+        used = self.registrations.filter(is_active=True, status__in=['completed', 'pending']).count()
         return max(0, self.quantity - used)
 
     def is_available(self):

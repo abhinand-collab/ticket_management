@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'apps.registrations',
     'apps.payments',
     'apps.activity_logs',
+    'apps.public',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +140,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Razorpay settings
 RAZORPAY_KEY_ID = env('RAZORPAY_KEY_ID', default='')
 RAZORPAY_KEY_SECRET = env('RAZORPAY_KEY_SECRET', default='')
+
+# Message tags for Bootstrap
+from django.contrib.messages import constants as messages
+MESSAGE_TAGS = {
+    messages.ERROR: 'danger',
+}
+
+# Global ticket limits
+MAX_TOTAL_TICKETS_PER_ORDER = 100

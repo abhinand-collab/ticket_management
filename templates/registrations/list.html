@@ -19,7 +19,7 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Phone</th>
-                    <th>Reg Status</th>
+                    <th>Payment Method</th>
                     <th>Payment Status</th>
                     <th>Order ID</th>
                     <th>Actions</th>
@@ -35,8 +35,8 @@
                     <td>{{ reg.email }}</td>
                     <td>{{ reg.phone }}</td>
                     <td>
-                        <span class="badge {% if reg.status == 'completed' %}bg-success{% elif reg.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
-                            {{ reg.status|title }}
+                        <span class="badge {% if reg.order.payment_method == 'razorpay' %}bg-info{% elif reg.order.payment_method == 'admin' %}bg-secondary{% else %}bg-light text-dark border{% endif %}">
+                            {{ reg.order.get_payment_method_display }}
                         </span>
                     </td>
                     <td>
@@ -59,11 +59,13 @@
 {% empty %}
 
                 <tr>
-                    <td colspan="8" class="text-center text-muted">No registrations found.</td>
+                    <td colspan="10" class="text-center text-muted">No registrations found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+{% include 'includes/pagination.html' with page_obj=registrations %}
 {% endblock %}

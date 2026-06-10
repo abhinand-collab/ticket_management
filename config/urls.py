@@ -19,15 +19,18 @@ from django.urls import path, include
 from django.shortcuts import redirect
 
 urlpatterns = [
-    path('', lambda request: redirect('tickets:list'), name='root_redirect'),
     path('admin/', admin.site.urls),
     
+    # Authentication
+    path('accounts/', include('apps.accounts.public_urls')),
+    path('admin-panel/auth/', include('apps.accounts.admin_urls')),
+    
     # Custom Admin/Dashboard
-    path('admin-panel/accounts/', include('apps.accounts.urls')),
     path('admin-panel/tickets/', include('apps.tickets.urls')),
     path('admin-panel/registrations/', include('apps.registrations.urls')),
     path('admin-panel/logs/', include('apps.activity_logs.urls')),
     
-    # Public/Payments
+    # Public Portal
+    path('', include('apps.public.urls')),
     path('payments/', include('apps.payments.urls')),
 ]
