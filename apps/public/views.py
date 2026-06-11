@@ -6,7 +6,7 @@ from apps.registrations.serializers import PublicRegistrationOrderSerializer
 from apps.registrations.models import RegistrationOrder
 
 def ticket_list(request):
-    tickets = Ticket.objects.filter(is_active=True)
+    tickets = Ticket.objects.filter(is_active=True).order_by('-created_at')
     return render(request, 'public/ticket_list.html', {'tickets': tickets})
 
 from django.http import JsonResponse
@@ -135,7 +135,10 @@ def register_form(request):
             if 'registration_selection' in request.session:
                 del request.session['registration_selection']
 
-            redirect_url = reverse('payments:checkout', kwargs={'order_id': order.id}) if order.total_amount > 0 else reverse('public:order_success', kwargs={'order_id': order.id})
+            # Security: Whitelist this order ID in the session for the success page
+            request.session['last_order_id'] = order.id
+
+            redirect_url = reverse('payments:checkout', kwargs={'order_id': order.id}) if order.total_amount > 0 else reverse('public:order_success', kwargs={'order_uuid': order.uuid})
             
             if is_ajax: return JsonResponse({'success': True, 'redirect_url': redirect_url})
             return redirect(redirect_url)
@@ -151,7 +154,7 @@ def register_form(request):
 
     total_amount = sum(item['subtotal'] for item in selected_items)
     # Prepare enhanced ticket list for the 'Add Ticket' modal with limits
-    all_available_tickets = Ticket.objects.filter(is_active=True)
+    all_available_tickets = Ticket.objects.filter(is_active=True).order_by('-created_at')
     enhanced_tickets = []
     for t in all_available_tickets:
         enhanced_tickets.append({
@@ -172,6 +175,15 @@ def register_form(request):
         'MAX_GLOBAL': getattr(settings, 'MAX_TOTAL_TICKETS_PER_ORDER', 100)
     })
 
-def order_success(request, order_id):
-    order = get_object_or_404(RegistrationOrder, id=order_id)
+def order_success(request, order_uuid):
+    order = get_object_or_404(RegistrationOrder, uuid=order_uuid)
+    
+    # Ownership check
+    is_session_owner = request.session.get('last_order_id') == order.id
+    is_buyer = request.user.is_authenticated and order.buyer == request.user
+    
+    if not (is_session_owner or is_buyer or request.user.is_staff):
+        messages.error(request, "You do not have permission to view this order.")
+        return redirect('public:ticket_list')
+
     return render(request, 'public/order_success.html', {'order': order})

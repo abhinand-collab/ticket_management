@@ -16,7 +16,10 @@
                 
                 <p>Click the button below to complete your payment via Razorpay.</p>
                 
-                <button id="rzp-button1" class="btn btn-success btn-lg px-5">Pay Now</button>
+                <button id="rzp-button1" class="btn btn-success btn-lg px-5">
+                    <span id="btn-text">Pay Now</span>
+                    <span id="btn-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
             </div>
         </div>
     </div>
@@ -47,6 +50,23 @@ var options = {
 };
 var rzp1 = new Razorpay(options);
 
+// Handle payment button visual state
+const payBtn = document.getElementById('rzp-button1');
+const btnText = document.getElementById('btn-text');
+const btnSpinner = document.getElementById('btn-spinner');
+
+function setLoading(isLoading) {
+    if (isLoading) {
+        payBtn.disabled = true;
+        btnText.textContent = 'Processing...';
+        btnSpinner.classList.remove('d-none');
+    } else {
+        payBtn.disabled = false;
+        btnText.textContent = 'Pay Now';
+        btnSpinner.classList.add('d-none');
+    }
+}
+
 rzp1.on('payment.failed', function (response){
     // When payment fails, Razorpay doesn't always hit the callback_url automatically
     // with the right POST data. We manually trigger a POST to our verify view.
@@ -71,7 +91,10 @@ rzp1.on('payment.failed', function (response){
 });
 
 document.getElementById('rzp-button1').onclick = function(e){
+    setLoading(true);
     rzp1.open();
+    // Re-enable if the modal is closed without paying
+    setTimeout(() => setLoading(false), 5000); 
     e.preventDefault();
 }
 </script>

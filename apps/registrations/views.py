@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Value, CharField
@@ -9,7 +9,7 @@ from .serializers import RegistrationSerializer
 from apps.tickets.models import Ticket
 from apps.activity_logs.utils import log_action
 
-@login_required
+@staff_member_required
 def order_list(request):
     search = request.GET.get('search', '')
     status_filter = request.GET.get('status', '')
@@ -60,7 +60,7 @@ def order_list(request):
         }
     })
 
-@login_required
+@staff_member_required
 def registration_list(request):
     # Get filter parameters
     search = request.GET.get('search', '')
@@ -137,7 +137,7 @@ def registration_list(request):
         }
     })
 
-@login_required
+@staff_member_required
 def registration_create(request):
     tickets = Ticket.objects.filter(is_active=True)
     if request.method == 'POST':
@@ -193,7 +193,7 @@ def registration_create(request):
         'title': 'Add Registration'
     })
 
-@login_required
+@staff_member_required
 def registration_edit(request, pk):
     registration = get_object_or_404(Registration, pk=pk)
     tickets = Ticket.objects.filter(is_active=True)
@@ -286,7 +286,7 @@ def registration_edit(request, pk):
         'title': 'Edit Registration'
     })
 
-@login_required
+@staff_member_required
 def registration_delete(request, pk):
     registration = get_object_or_404(Registration, pk=pk)
     if request.method == 'POST':

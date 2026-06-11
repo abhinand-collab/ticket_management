@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from .models import Ticket
 from .serializers import TicketSerializer
 from apps.activity_logs.utils import log_action
 
-@login_required
+@staff_member_required
 def ticket_list(request):
     query = request.GET.get('q')
     ticket_type = request.GET.get('ticket_type')
@@ -34,7 +34,7 @@ def ticket_list(request):
         'quantity_type': quantity_type
     })
 
-@login_required
+@staff_member_required
 def ticket_create(request):
     if request.method == 'POST':
         serializer = TicketSerializer(data=request.POST)
@@ -51,14 +51,46 @@ def ticket_create(request):
             })
     return render(request, 'tickets/form.html', {'title': 'Add Ticket'})
 
-@login_required
+@staff_member_required
 def ticket_edit(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
+    
+    # Store old values for logging
+    old_data = {
+        'name': str(ticket.name),
+        'ticket_type': str(ticket.ticket_type),
+        'price': str(ticket.price),
+        'quantity_type': str(ticket.quantity_type),
+        'quantity': str(ticket.quantity),
+        'max_per_order': str(ticket.max_per_order),
+        'duplicate_email_check': str(ticket.duplicate_email_check),
+        'is_active': str(ticket.is_active)
+    }
+
     if request.method == 'POST':
         serializer = TicketSerializer(ticket, data=request.POST)
         if serializer.is_valid():
             ticket = serializer.save()
-            log_action(request.user, 'ticket_edit', ticket, request)
+            
+            # Calculate changes
+            new_data = {
+                'name': str(ticket.name),
+                'ticket_type': str(ticket.ticket_type),
+                'price': str(ticket.price),
+                'quantity_type': str(ticket.quantity_type),
+                'quantity': str(ticket.quantity),
+                'max_per_order': str(ticket.max_per_order),
+                'duplicate_email_check': str(ticket.duplicate_email_check),
+                'is_active': str(ticket.is_active)
+            }
+            
+            changes = {}
+            for field, old_value in old_data.items():
+                new_value = new_data.get(field)
+                if old_value != new_value:
+                    changes[field] = [old_value, new_value]
+            
+            log_action(request.user, 'ticket_edit', ticket, request, changes=changes)
             messages.success(request, 'Ticket updated successfully.')
             return redirect('tickets:list')
         else:
@@ -75,7 +107,7 @@ def ticket_edit(request, pk):
         'title': 'Edit Ticket'
     })
 
-@login_required
+@staff_member_required
 def ticket_delete(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     if request.method == 'POST':

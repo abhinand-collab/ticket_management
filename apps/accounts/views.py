@@ -2,15 +2,14 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from .serializers import UserRegistrationSerializer, LoginSerializer
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 
-@login_required
+@staff_member_required
 def user_list(request):
-    if not request.user.is_staff:
-        return redirect('public:ticket_list')
     
     search = request.GET.get('search', '')
     joined_from = request.GET.get('joined_from', '')

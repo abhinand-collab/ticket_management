@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -15,7 +15,7 @@ client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_S
 
 from django.db.models import Q, Sum
 
-@login_required
+@staff_member_required
 def payment_list(request):
     search = request.GET.get('search', '')
     status_filter = request.GET.get('status', 'all')
@@ -130,7 +130,7 @@ def verify_payment(request):
                 
                 # If already paid, just redirect (prevents double processing)
                 if transaction.status == 'paid':
-                    return redirect('public:order_success', order_id=transaction.order.id)
+                    return redirect('public:order_success', order_uuid=transaction.order.uuid)
                 
                 transaction.status = 'paid'
                 transaction.razorpay_payment_id = payment_id
@@ -145,10 +145,13 @@ def verify_payment(request):
                 # Update all attendees in this order
                 order.attendees.all().update(status='completed')
                 
+                # Security: Whitelist this order ID in the session for the success page
+                request.session['last_order_id'] = order.id
+
                 # Log the registration completion
                 log_action(order.buyer, 'registration_create', order, request)
             
-            return redirect('public:order_success', order_id=order.id)
+            return redirect('public:order_success', order_uuid=order.uuid)
         except Exception as e:
             # Handle failure
             if razorpay_order_id:

@@ -11,6 +11,7 @@
         .sidebar { min-height: 100vh; background: #343a40; color: white; }
         .sidebar a { color: #ccc; text-decoration: none; display: block; padding: 10px 20px; }
         .sidebar a:hover { background: #495057; color: white; }
+        .sidebar a.active { background: #0d6efd; color: white; font-weight: bold; border-left: 4px solid white; }
     </style>
 </head>
 <body>
@@ -22,20 +23,20 @@
                     {# Hide sidebar ONLY on the login page #}
                     {% if request.path != "/admin-panel/auth/login/" %}
                         <h4 class="px-3 mb-4">Event Admin</h4>
-                        <a href="{% url 'tickets:list' %}">Ticket Listing</a>
-                        <a href="{% url 'registrations:list' %}">Registration Listing</a>
-                        <a href="{% url 'registrations:order_list' %}">Order Listing</a>
-                        <a href="{% url 'admin_accounts:user_list' %}">User Management</a>
+                        <a href="{% url 'tickets:list' %}" class="{% if request.resolver_match.app_name == 'tickets' %}active{% endif %}">Ticket Listing</a>
+                        <a href="{% url 'registrations:list' %}" class="{% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'registrations' %}active{% endif %}">Registration Listing</a>
+                        <a href="{% url 'registrations:order_list' %}" class="{% if request.resolver_match.url_name == 'order_list' %}active{% endif %}">Order Listing</a>
+                        <a href="{% url 'admin_accounts:user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">User Management</a>
 
-                        <a href="{% url 'activity_logs:list' %}">Activity Logs</a>
-                        <a href="{% url 'payments:list' %}">Payment Transactions</a>
+                        <a href="{% url 'activity_logs:list' %}" class="{% if request.resolver_match.app_name == 'activity_logs' %}active{% endif %}">Activity Logs</a>
+                        <a href="{% url 'payments:list' %}" class="{% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'payments' %}active{% endif %}">Payment Transactions</a>
                         <hr>
                         <a href="{% url 'admin_accounts:logout' %}" class="text-danger">Logout</a>
                     {% endif %}
                 {% else %}
                     {# Public Portal Sidebar #}
                     <h4 class="px-3 mb-4">Event Portal</h4>
-                    <a href="{% url 'public:ticket_list' %}">Browse Tickets</a>
+                    <a href="{% url 'public:ticket_list' %}" class="{% if request.resolver_match.url_name == 'ticket_list' %}active{% endif %}">Browse Tickets</a>
                     <hr>
                     {% if request.user.is_authenticated %}
                         {% if request.user.is_staff %}
@@ -43,12 +44,13 @@
                             <a href="{% url 'tickets:list' %}" class="fw-bold text-info">Admin Dashboard</a>
                             <a href="{% url 'admin_accounts:logout' %}" class="text-danger">Logout</a>
                         {% else %}
-                            <div class="px-3 mb-2 small text-light">Signed in as: {{ request.user.username }}</div>
+                            <div class="px-3 mb-2 small text-light">Signed in as: {{ request.user.get_full_name|default:request.user.username }}</div>
+
                             <a href="{% url 'accounts:user_logout' %}" class="text-danger">Logout</a>
                         {% endif %}
                     {% else %}
-                        <a href="{% url 'accounts:user_login' %}">Login</a>
-                        <a href="{% url 'accounts:user_register' %}">Register</a>
+                        <a href="{% url 'accounts:user_login' %}" class="{% if request.resolver_match.url_name == 'user_login' %}active{% endif %}">Login</a>
+                        <a href="{% url 'accounts:user_register' %}" class="{% if request.resolver_match.url_name == 'user_register' %}active{% endif %}">Register</a>
                     {% endif %}
                 {% endif %}
             </nav>

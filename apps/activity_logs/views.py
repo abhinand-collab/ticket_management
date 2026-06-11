@@ -1,11 +1,11 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 from .models import ActivityLog
 
 from django.db.models import Q
 
-@login_required
+@staff_member_required
 def log_list(request):
     search = request.GET.get('search', '')
     action_filter = request.GET.get('action', '')
@@ -47,7 +47,7 @@ def log_list(request):
         }
     })
 
-@login_required
+@staff_member_required
 def registration_logs(request, registration_id):
     logs = ActivityLog.objects.filter(
         object_type='Registration',
@@ -57,4 +57,16 @@ def registration_logs(request, registration_id):
     return render(request, 'activity_logs/registration_logs.html', {
         'logs': logs,
         'registration_id': registration_id
+    })
+
+@staff_member_required
+def ticket_logs(request, ticket_id):
+    logs = ActivityLog.objects.filter(
+        object_type='Ticket',
+        object_id=ticket_id
+    ).order_by('-timestamp')
+    
+    return render(request, 'activity_logs/ticket_logs.html', {
+        'logs': logs,
+        'ticket_id': ticket_id
     })

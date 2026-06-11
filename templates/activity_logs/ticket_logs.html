@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Logs for Ticket #{{ ticket_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Audit Logs for Ticket #{{ ticket_id }}</h2>
+    <a href="{% url 'tickets:list' %}" class="btn btn-outline-secondary">Back to List</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Admin User</th>
+                        <th>Action</th>
+                        <th>Changes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.timestamp|date:"d M Y, h:i A" }}</td>
+                        <td>{{ log.user.username }}</td>
+                        <td>
+                            <span class="badge {% if 'create' in log.action %}bg-success{% elif 'edit' in log.action %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ log.get_action_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if log.changes %}
+                                <table class="table table-sm table-bordered mb-0 small">
+                                    <thead>
+                                        <tr class="table-secondary">
+                                            <th>Field</th>
+                                            <th>From</th>
+                                            <th>To</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for field, values in log.changes.items %}
+                                        <tr>
+                                            <td class="fw-bold">{{ field|title }}</td>
+                                            <td class="text-danger"><del>{{ values.0 }}</del></td>
+                                            <td class="text-success">{{ values.1 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                <span class="text-muted">No specific field changes recorded.</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">No logs found for this ticket.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

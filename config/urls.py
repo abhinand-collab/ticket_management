@@ -18,8 +18,16 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 
+def admin_panel_redirect(request):
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('tickets:list')
+    return redirect('admin_accounts:login')
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Admin Panel Root Redirect
+    path('admin-panel/', admin_panel_redirect),
     
     # Authentication
     path('accounts/', include('apps.accounts.public_urls')),
