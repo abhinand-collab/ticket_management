@@ -171,7 +171,7 @@ MAX_TOTAL_TICKETS_PER_ORDER = 100
 
 # 1. Handle DEBUG safely
 if 'RENDER' in os.environ:
-    DEBUG = False
+    DEBUG = True
 else:
     DEBUG = env.bool('DEBUG', default=True)
 
