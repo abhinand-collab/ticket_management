@@ -46,6 +46,30 @@ var options = {
     }
 };
 var rzp1 = new Razorpay(options);
+
+rzp1.on('payment.failed', function (response){
+    // When payment fails, Razorpay doesn't always hit the callback_url automatically
+    // with the right POST data. We manually trigger a POST to our verify view.
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = options.callback_url;
+
+    var orderIdInput = document.createElement('input');
+    orderIdInput.type = 'hidden';
+    orderIdInput.name = 'razorpay_order_id';
+    orderIdInput.value = response.error.metadata.order_id;
+    form.appendChild(orderIdInput);
+
+    var errorInput = document.createElement('input');
+    errorInput.type = 'hidden';
+    errorInput.name = 'error_description';
+    errorInput.value = response.error.description;
+    form.appendChild(errorInput);
+
+    document.body.appendChild(form);
+    form.submit();
+});
+
 document.getElementById('rzp-button1').onclick = function(e){
     rzp1.open();
     e.preventDefault();

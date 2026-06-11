@@ -3,14 +3,17 @@
 {% block title %}Attendee Registration{% endblock %}
 
 {% block content %}
+<!-- Add intl-tel-input CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css">
+<style>
+    .iti { width: 100%; }
+    .iti__flag-container { z-index: 5; }
+    .iti__country-list { z-index: 1055 !important; } /* Ensure it shows above modals if needed */
+</style>
+
 <div class="mb-4">
     <h2>Attendee Registration</h2>
     <p class="text-muted">Please provide details for each ticket.</p>
-</div>
-
-<div id="error-container" class="alert alert-danger d-none">
-    <h5 class="alert-heading">Validation Errors</h5>
-    <ul id="error-list" class="mb-0"></ul>
 </div>
 
 <form id="registration-form" method="POST">
@@ -37,9 +40,13 @@
                     <input type="hidden" name="attendee_{{ slot.index }}_ticket" value="{{ slot.ticket.id }}">
                     
                     <div class="row">
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" name="attendee_{{ slot.index }}_name" class="form-control" required>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name</label>
+                            <input type="text" name="attendee_{{ slot.index }}_first_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" name="attendee_{{ slot.index }}_last_name" class="form-control" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Email Address</label>
@@ -50,7 +57,11 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Phone Number</label>
-                            <input type="text" name="attendee_{{ slot.index }}_phone" class="form-control" placeholder="10-digit mobile" required>
+                            <input type="tel" class="form-control phone-input" 
+                                   data-index="{{ slot.index }}"
+                                   placeholder="e.g. 9876543210" required>
+                            <input type="hidden" name="attendee_{{ slot.index }}_phone" class="phone-hidden">
+                            <div class="text-danger small mt-1 phone-error d-none">Invalid phone number.</div>
                         </div>
                     </div>
                 </div>
@@ -94,6 +105,24 @@
         </div>
     </div>
 </form>
+
+<!-- Error Modal (Popup) -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-octagon-fill me-2"></i> Registration Error</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <ul id="modal-error-list" class="mb-0 list-unstyled"></ul>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Add Ticket Modal -->
 <div class="modal fade" id="addTicketModal" tabindex="-1" aria-hidden="true">
@@ -164,8 +193,41 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/intlTelInput.min.js"></script>
 <script>
+const itis = {};
+
+function initIntlTelInput(element) {
+    const index = element.getAttribute('data-index');
+    const iti = window.intlTelInput(element, {
+        initialCountry: "in",
+        separateDialCode: true,
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/utils.js",
+    });
+    itis[index] = iti;
+
+    element.addEventListener('blur', function() {
+        const errorDiv = element.closest('.mb-3').querySelector('.phone-error');
+        const hiddenInput = element.closest('.mb-3').querySelector('.phone-hidden');
+        
+        element.classList.remove('is-invalid');
+        errorDiv.classList.add('d-none');
+        
+        if (element.value.trim()) {
+            if (!iti.isValidNumber()) {
+                element.classList.add('is-invalid');
+                errorDiv.classList.remove('d-none');
+            } else {
+                hiddenInput.value = iti.getNumber();
+            }
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize existing phone inputs
+    document.querySelectorAll('.phone-input').forEach(initIntlTelInput);
+
     // 1. URL Cleanup
     if (window.history.replaceState && window.location.search) {
         const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
@@ -173,6 +235,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const registrationForm = document.getElementById('registration-form');
+    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+    const modalErrorList = document.getElementById('modal-error-list');
+
+    function showError(message) {
+        modalErrorList.innerHTML = `<li><i class="bi bi-exclamation-circle-fill me-2"></i> ${message}</li>`;
+        
+        // Hide ticket selection modal if it's open
+        const addTicketModalEl = document.getElementById('addTicketModal');
+        const addTicketModalInstance = bootstrap.Modal.getInstance(addTicketModalEl);
+        if (addTicketModalInstance) {
+            addTicketModalInstance.hide();
+        }
+        
+        errorModal.show();
+    }
+
     if (registrationForm) {
         registrationForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -181,17 +259,45 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitBtn = document.getElementById('submit-btn');
             const btnText = document.getElementById('btn-text');
             const btnSpinner = document.getElementById('btn-spinner');
-            const errorContainer = document.getElementById('error-container');
-            const errorList = document.getElementById('error-list');
             
             form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
             form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+            form.querySelectorAll('.phone-error').forEach(el => el.classList.add('d-none'));
+
+            // Sync all phone numbers before building FormData
+            let allValid = true;
+            document.querySelectorAll('.phone-input').forEach(input => {
+                const index = input.getAttribute('data-index');
+                const iti = itis[index];
+                const errorDiv = input.closest('.mb-3').querySelector('.phone-error');
+                const hiddenInput = input.closest('.mb-3').querySelector('.phone-hidden');
+                
+                if (input.value.trim()) {
+                    if (!iti.isValidNumber()) {
+                        input.classList.add('is-invalid');
+                        errorDiv.classList.remove('d-none');
+                        allValid = false;
+                    } else {
+                        hiddenInput.value = iti.getNumber();
+                    }
+                } else if (input.required) {
+                    allValid = false;
+                }
+            });
+
+            if (!allValid) {
+                const firstError = form.querySelector('.is-invalid') || form.querySelector(':invalid');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstError.focus();
+                }
+                return;
+            }
             
             submitBtn.disabled = true;
             btnText.textContent = 'Processing...';
             btnSpinner.classList.remove('d-none');
-            errorContainer.classList.add('d-none');
-            errorList.innerHTML = '';
+            modalErrorList.innerHTML = '';
             
             const formData = new FormData(form);
             
@@ -211,12 +317,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 let hasGlobalErrors = false;
-                errorList.innerHTML = '';
+                modalErrorList.innerHTML = '';
                 
                 if (data.errors) {
                     if (data.errors.non_field_errors) {
                         data.errors.non_field_errors.forEach(err => {
-                            errorList.innerHTML += `<li><i class="bi bi-exclamation-circle-fill me-2"></i>${err}</li>`;
+                            modalErrorList.innerHTML += `<li class="mb-2"><i class="bi bi-exclamation-circle-fill me-2"></i>${err}</li>`;
                             hasGlobalErrors = true;
                         });
                     }
@@ -224,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.errors.attendees) {
                         data.errors.attendees.forEach((attendeeErr, index) => {
                             if (typeof attendeeErr === 'string') {
-                                errorList.innerHTML += `<li>Attendee ${index + 1}: ${attendeeErr}</li>`;
+                                modalErrorList.innerHTML += `<li class="mb-2"><i class="bi bi-person-fill-exclamation me-2"></i>Attendee ${index + 1}: ${attendeeErr}</li>`;
                                 hasGlobalErrors = true;
                             } else if (attendeeErr && typeof attendeeErr === 'object') {
                                 for (let field in attendeeErr) {
@@ -232,13 +338,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const errMsg = attendeeErr[field].join(', ');
                                     
                                     if (input) {
-                                        input.classList.add('is-invalid');
+                                        let targetInput = input;
+                                        if (field === 'phone') {
+                                            const visibleInput = input.closest('.mb-3').querySelector('.phone-input');
+                                            if (visibleInput) targetInput = visibleInput;
+                                        }
+                                        targetInput.classList.add('is-invalid');
                                         const feedback = document.createElement('div');
                                         feedback.className = 'invalid-feedback';
                                         feedback.textContent = errMsg;
-                                        input.parentNode.appendChild(feedback);
+                                        targetInput.parentNode.appendChild(feedback);
                                     } else {
-                                        errorList.innerHTML += `<li>Attendee ${index + 1} (${field}): ${errMsg}</li>`;
+                                        modalErrorList.innerHTML += `<li class="mb-2"><i class="bi bi-person-fill-exclamation me-2"></i>Attendee ${index + 1} (${field}): ${errMsg}</li>`;
                                         hasGlobalErrors = true;
                                     }
                                 }
@@ -248,18 +359,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     for (let key in data.errors) {
                         if (key !== 'non_field_errors' && key !== 'attendees') {
-                            errorList.innerHTML += `<li>${key.toUpperCase()}: ${data.errors[key].join(', ')}</li>`;
+                            modalErrorList.innerHTML += `<li class="mb-2"><i class="bi bi-exclamation-circle-fill me-2"></i>${key.toUpperCase()}: ${data.errors[key].join(', ')}</li>`;
                             hasGlobalErrors = true;
                         }
                     }
                 } else {
-                    errorList.innerHTML += `<li>Submission failed. Please check your data.</li>`;
+                    modalErrorList.innerHTML += `<li class="mb-2"><i class="bi bi-exclamation-circle-fill me-2"></i>Submission failed. Please check your data.</li>`;
                     hasGlobalErrors = true;
                 }
 
                 if (hasGlobalErrors) {
-                    errorContainer.classList.remove('d-none');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    errorModal.show();
+                } else {
+                    // If only field errors, scroll to first one
+                    const firstError = form.querySelector('.is-invalid');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 }
                 
                 submitBtn.disabled = false;
@@ -268,8 +384,8 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                errorContainer.classList.remove('d-none');
-                errorList.innerHTML = '<li><i class="bi bi-wifi-off me-2"></i> An unexpected error occurred. Please check your connection.</li>';
+                modalErrorList.innerHTML = '<li><i class="bi bi-wifi-off me-2"></i> An unexpected error occurred. Please check your connection.</li>';
+                errorModal.show();
                 submitBtn.disabled = false;
                 btnText.textContent = 'Complete Registration';
                 btnSpinner.classList.add('d-none');
@@ -299,7 +415,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const { index, ticketId, price } = itemToDelete;
         const card = document.getElementById(`card-${index}`);
         
-        if (card) card.remove();
+        if (card) {
+            card.remove();
+            delete itis[index]; // Clean up instance
+        }
         
         const summaryItem = document.querySelector(`.summary-item[data-ticket-id="${ticketId}"]`);
         if (summaryItem) {
@@ -357,13 +476,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // A. Global Limit Validation
             if (currentTotalAttendees >= MAX_GLOBAL_LIMIT) {
-                alert(`Global limit reached. You cannot add more than ${MAX_GLOBAL_LIMIT} total tickets to one order.`);
+                showError(`Global limit reached. You cannot add more than ${MAX_GLOBAL_LIMIT} total tickets to one order.`);
                 return;
             }
 
             // B. Per-Ticket Order Limit Validation
             if (currentTicketQty >= maxPerOrder) {
-                alert(`You have reached the maximum limit of ${maxPerOrder} for ${ticketName}.`);
+                showError(`You have reached the maximum limit of ${maxPerOrder} for ${ticketName}.`);
                 return;
             }
 
@@ -371,7 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (availableSlots !== 'unlimited') {
                 const availableCount = parseInt(availableSlots);
                 if (currentTicketQty >= availableCount) {
-                    alert(`Sorry, only ${availableCount} slots are available for ${ticketName}.`);
+                    showError(`Sorry, only ${availableCount} slots are available for ${ticketName}.`);
                     return;
                 }
             }
@@ -397,9 +516,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="card-body">
                         <input type="hidden" name="attendee_${newIndex}_ticket" value="${ticketId}">
                         <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Full Name</label>
-                                <input type="text" name="attendee_${newIndex}_name" class="form-control" required>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name</label>
+                                <input type="text" name="attendee_${newIndex}_first_name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" name="attendee_${newIndex}_last_name" class="form-control" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Email Address</label>
@@ -408,13 +531,21 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Phone Number</label>
-                                <input type="text" name="attendee_${newIndex}_phone" class="form-control" placeholder="10-digit mobile" required>
+                                <input type="tel" class="form-control phone-input" 
+                                       data-index="${newIndex}"
+                                       placeholder="e.g. 9876543210" required>
+                                <input type="hidden" name="attendee_${newIndex}_phone" class="phone-hidden" id="phone-hidden-${newIndex}">
+                                <div class="text-danger small mt-1 phone-error d-none">Invalid phone number.</div>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
             document.getElementById('attendee-container').insertAdjacentHTML('beforeend', cardHtml);
+            
+            // Initialize intl-tel-input for the new field
+            const newPhoneInput = document.querySelector(`#card-${newIndex} .phone-input`);
+            initIntlTelInput(newPhoneInput);
             
             let summaryItem = document.querySelector(`.summary-item[data-ticket-id="${ticketId}"]`);
             if (summaryItem) {

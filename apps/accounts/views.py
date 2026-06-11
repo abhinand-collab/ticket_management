@@ -12,11 +12,45 @@ def user_list(request):
     if not request.user.is_staff:
         return redirect('public:ticket_list')
     
-    user_list = User.objects.filter(is_staff=False).order_by('-date_joined')
-    paginator = Paginator(user_list, 10)
+    search = request.GET.get('search', '')
+    joined_from = request.GET.get('joined_from', '')
+    joined_to = request.GET.get('joined_to', '')
+    
+    from django.db.models import Q, Value, CharField
+    from django.db.models.functions import Concat
+
+    user_queryset = User.objects.filter(is_staff=False)
+    
+    if search:
+        user_queryset = user_queryset.annotate(
+            full_name=Concat('first_name', Value(' '), 'last_name', output_field=CharField())
+        ).filter(
+            Q(username__icontains=search) |
+            Q(email__icontains=search) |
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(full_name__icontains=search)
+        )
+        
+    if joined_from:
+        user_queryset = user_queryset.filter(date_joined__date__gte=joined_from)
+    if joined_to:
+        user_queryset = user_queryset.filter(date_joined__date__lte=joined_to)
+
+    user_queryset = user_queryset.order_by('-date_joined')
+    
+    paginator = Paginator(user_queryset, 10)
     page_number = request.GET.get('page')
     users = paginator.get_page(page_number)
-    return render(request, 'accounts/user_list.html', {'users': users})
+    
+    return render(request, 'accounts/user_list.html', {
+        'users': users,
+        'filters': {
+            'search': search,
+            'joined_from': joined_from,
+            'joined_to': joined_to,
+        }
+    })
 
 def admin_login(request):
     if request.user.is_authenticated:

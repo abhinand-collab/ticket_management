@@ -18,6 +18,7 @@ class ActivityLog(models.Model):
     object_type = models.CharField(max_length=50, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     description = models.TextField()
+    changes = models.JSONField(null=True, blank=True) # Stores {field: [old, new]}
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 

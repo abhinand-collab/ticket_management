@@ -8,36 +8,66 @@
     <p class="text-muted">List of registered customers who have created accounts.</p>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Full Name</th>
-                    <th>Date Joined</th>
-                    <th>Orders</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.get_full_name|default:"N/A" }}</td>
-                    <td>{{ user.date_joined|date:"M d, Y" }}</td>
-                    <td>
-                        <span class="badge bg-primary">{{ user.orders.count }}</span>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted">No users registered yet.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- Filters -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body bg-light rounded">
+        <form method="GET" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label small fw-bold">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="Username, Email, or Name..." value="{{ filters.search }}">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Joined Between</label>
+                <div class="input-group">
+                    <input type="date" name="joined_from" class="form-control" value="{{ filters.joined_from }}">
+                    <span class="input-group-text bg-white border-start-0 border-end-0">to</span>
+                    <input type="date" name="joined_to" class="form-control" value="{{ filters.joined_to }}">
+                </div>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">Apply Filters</button>
+                <a href="{% url 'admin_accounts:user_list' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">User Info</th>
+                        <th>Email Address</th>
+                        <th>Joined Date</th>
+                        <th class="text-center">Total Orders</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">{{ user.username }}</div>
+                            <div class="small text-muted">{{ user.get_full_name|default:"" }}</div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.date_joined|date:"d M Y" }}</td>
+                        <td class="text-center">
+                            <span class="badge rounded-pill bg-primary px-3">{{ user.orders.count }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-5">No users found matching your criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

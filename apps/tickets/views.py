@@ -8,11 +8,31 @@ from apps.activity_logs.utils import log_action
 
 @login_required
 def ticket_list(request):
-    ticket_list = Ticket.objects.filter(is_active=True).order_by('-created_at')
-    paginator = Paginator(ticket_list, 10) # Show 10 tickets per page
+    query = request.GET.get('q')
+    ticket_type = request.GET.get('ticket_type')
+    quantity_type = request.GET.get('quantity_type')
+    
+    ticket_queryset = Ticket.objects.filter(is_active=True).order_by('-created_at')
+    
+    if query:
+        ticket_queryset = ticket_queryset.filter(name__icontains=query)
+    
+    if ticket_type:
+        ticket_queryset = ticket_queryset.filter(ticket_type=ticket_type)
+        
+    if quantity_type:
+        ticket_queryset = ticket_queryset.filter(quantity_type=quantity_type)
+
+    paginator = Paginator(ticket_queryset, 10)
     page_number = request.GET.get('page')
     tickets = paginator.get_page(page_number)
-    return render(request, 'tickets/list.html', {'tickets': tickets})
+    
+    return render(request, 'tickets/list.html', {
+        'tickets': tickets,
+        'query': query,
+        'ticket_type': ticket_type,
+        'quantity_type': quantity_type
+    })
 
 @login_required
 def ticket_create(request):

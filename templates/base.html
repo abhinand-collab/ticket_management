@@ -23,10 +23,10 @@
                     {% if request.path != "/admin-panel/auth/login/" %}
                         <h4 class="px-3 mb-4">Event Admin</h4>
                         <a href="{% url 'tickets:list' %}">Ticket Listing</a>
-                        <a href="{% url 'admin_accounts:user_list' %}">User Management</a>
+                        <a href="{% url 'registrations:list' %}">Registration Listing</a>
                         <a href="{% url 'registrations:order_list' %}">Order Listing</a>
+                        <a href="{% url 'admin_accounts:user_list' %}">User Management</a>
 
-                        <a href="{% url 'registrations:list' %}">Attendee Listing</a>
                         <a href="{% url 'activity_logs:list' %}">Activity Logs</a>
                         <a href="{% url 'payments:list' %}">Payment Transactions</a>
                         <hr>

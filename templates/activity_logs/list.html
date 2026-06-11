@@ -7,34 +7,84 @@
     <h2>Activity Logs</h2>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Action</th>
-                    <th>Details</th>
-                    <th>IP Address</th>
-                    <th>Timestamp</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in logs %}
-                <tr>
-                    <td>{{ log.user.username }}</td>
-                    <td><span class="badge bg-dark">{{ log.action|title }}</span></td>
-                    <td>{{ log.description }}</td>
-                    <td>{{ log.ip_address }}</td>
-                    <td>{{ log.timestamp|date:"M d, Y H:i:s" }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted">No activity logs found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- Filters -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body bg-light rounded">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="User or Description..." value="{{ filters.search }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Action Type</label>
+                <select name="action" class="form-select">
+                    <option value="">All Actions</option>
+                    {% for val, label in action_choices %}
+                    <option value="{{ val }}" {% if filters.action == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Date Range</label>
+                <div class="input-group input-group-sm">
+                    <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+                    <span class="input-group-text bg-white border-start-0 border-end-0">to</span>
+                    <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                <a href="{% url 'activity_logs:list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">User</th>
+                        <th>Action</th>
+                        <th>Details</th>
+                        <th>IP Address</th>
+                        <th class="pe-4">Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">{{ log.user.username }}</div>
+                            <div class="small text-muted">{{ log.user.get_full_name }}</div>
+                        </td>
+                        <td>
+                            <span class="badge {% if 'create' in log.action %}bg-success{% elif 'edit' in log.action %}bg-warning{% elif 'delete' in log.action %}bg-danger{% else %}bg-dark{% endif %} px-3">
+                                {{ log.get_action_display }}
+                            </span>
+                        </td>
+                        <td style="max-width: 400px;" class="text-truncate" title="{{ log.description }}">
+                            {{ log.description }}
+                        </td>
+                        <td class="small text-muted">{{ log.ip_address }}</td>
+                        <td class="pe-4 small text-muted">
+                            {{ log.timestamp|date:"d M Y" }}<br>
+                            {{ log.timestamp|date:"h:i:s A" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-5">No activity logs found matching your criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

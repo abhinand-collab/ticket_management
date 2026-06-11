@@ -1,6 +1,6 @@
 from .models import ActivityLog
 
-def log_action(user, action, obj=None, request=None):
+def log_action(user, action, obj=None, request=None, changes=None):
     """
     Utility to log admin actions.
     """
@@ -18,5 +18,6 @@ def log_action(user, action, obj=None, request=None):
         object_type=obj.__class__.__name__ if obj else '',
         object_id=obj.pk if obj else None,
         description=f"{action.replace('_', ' ').title()}: {str(obj) if obj else 'N/A'}",
+        changes=changes,
         ip_address=ip,
     )

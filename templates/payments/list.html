@@ -3,49 +3,124 @@
 {% block title %}Payment Transactions{% endblock %}
 
 {% block content %}
-<div class="mb-4">
-    <h2>Payment Transactions</h2>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Order ID</th>
-                    <th>Registration</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Payment ID</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for payment in payments %}
-                <tr>
-                    <td>Order #{{ payment.order.id }}</td>
-                    <td>
-                        {{ payment.order.buyer.username|default:"Guest" }} 
-                        <small class="text-muted">({{ payment.order.attendees.count }} tickets)</small>
-                    </td>
-                    <td>₹{{ payment.amount }}</td>
-                    <td>
-                        <span class="badge {% if payment.status == 'paid' %}bg-success{% elif payment.status == 'created' %}bg-info{% else %}bg-danger{% endif %}">
-                            {{ payment.status|title }}
-                        </span>
-                    </td>
-                    <td>{{ payment.razorpay_payment_id|default:"-" }}</td>
-                    <td>{{ payment.created_at|date:"M d, Y H:i" }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center text-muted">No transactions found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Financial Transactions</h2>
+    <div class="card bg-success text-white shadow-sm">
+        <div class="card-body py-2 px-4">
+            <small class="d-block opacity-75">Total Revenue (Paid)</small>
+            <h4 class="mb-0 fw-bold">₹{{ total_paid }}</h4>
+        </div>
     </div>
 </div>
 
-{% include 'includes/pagination.html' with page_obj=payments %}
+<!-- Auditing Filters -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body bg-light rounded">
+        <form method="GET" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">Search Gateway IDs or Buyer</label>
+                <input type="text" name="search" class="form-control" placeholder="Order ID, Payment ID, Name..." value="{{ filters.search }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Payment Status</label>
+                <select name="status" class="form-select">
+                    <option value="all" {% if filters.status == 'all' %}selected{% endif %}>All Transactions</option>
+                    <option value="paid" {% if filters.status == 'paid' %}selected{% endif %}>Paid / Success</option>
+                    <option value="created" {% if filters.status == 'created' %}selected{% endif %}>Pending / Created</option>
+                    <option value="failed" {% if filters.status == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">Filter Records</button>
+                <a href="{% url 'payments:list' %}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Gateway IDs</th>
+                        <th>Buyer & Details</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="small fw-bold text-primary" style="font-family: monospace;">Order ID: {{ payment.razorpay_order_id }}</div>
+                            {% if payment.razorpay_payment_id %}
+                                <div class="small text-success fw-bold" style="font-family: monospace;">Payment ID: {{ payment.razorpay_payment_id }}</div>
+                            {% elif payment.status == 'failed' %}
+                                <div class="small text-danger fw-bold" style="font-family: monospace; font-size: 0.75rem;">Payment ID: FAILED</div>
+                            {% else %}
+                                <div class="small text-muted fw-bold" style="font-family: monospace; font-size: 0.75rem;">Payment ID: PENDING</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-bold">{{ payment.order.buyer.username|default:"Guest Checkout" }}</div>
+                            <small class="text-muted">
+                                Order #{{ payment.order.id }} &bull; {{ payment.order.attendees.count }} Attendee{{ payment.order.attendees.count|pluralize }}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="fs-6 fw-bold">₹{{ payment.amount }}</span>
+                        </td>
+                        <td>
+                            <span class="badge {% if payment.status == 'paid' %}bg-success{% elif payment.status == 'created' %}bg-info{% else %}bg-danger{% endif %} px-3 rounded-pill">
+                                {{ payment.status|title }}
+                            </span>
+                        </td>
+                        <td class="small text-muted">
+                            {{ payment.created_at|date:"d M Y" }}<br>
+                            {{ payment.created_at|date:"h:i A" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-5">
+                            <div class="mb-2"><i class="bi bi-credit-card-2-front" style="font-size: 3rem; opacity: 0.3;"></i></div>
+                            No transactions found matching your criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination with filter preservation -->
+{% if payments.has_other_pages %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if payments.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ payments.previous_page_number }}&search={{ filters.search }}&status={{ filters.status }}">Previous</a>
+            </li>
+        {% endif %}
+        
+        {% for num in payments.paginator.page_range %}
+            {% if num > payments.number|add:'-3' and num < payments.number|add:'3' %}
+                <li class="page-item {% if payments.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}&search={{ filters.search }}&status={{ filters.status }}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if payments.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ payments.next_page_number }}&search={{ filters.search }}&status={{ filters.status }}">Next</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}

@@ -2,3 +2,4 @@ django
 djangorestframework
 django-environ
 razorpay
+phonenumbers

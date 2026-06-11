@@ -7,15 +7,63 @@
     <h2>Order Listing</h2>
 </div>
 
+<!-- Advanced Search and Filter -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0"><i class="bi bi-filter me-2"></i>Filter Orders</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Order ID, Name, Email..." value="{{ filters.search }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="failed" {% if filters.status == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Payment Method</label>
+                <select name="payment_method" class="form-select">
+                    <option value="">All Methods</option>
+                    {% for val, label in payment_methods %}
+                    <option value="{{ val }}" {% if filters.payment_method == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+                <a href="{% url 'registrations:order_list' %}" class="btn btn-light px-4">Reset</a>
+                <button type="submit" class="btn btn-primary px-4">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         <table class="table table-hover">
             <thead>
                 <tr>
-                    <th>Order ID</th>
+                    <th class="ps-4">ID</th>
                     <th>Buyer</th>
-                    <th>Total Amount</th>
-                    <th>Method</th>
+                    <th>Amount</th>
+                    <th>Payment</th>
                     <th>Status</th>
                     <th>Attendees</th>
                     <th>Date</th>
@@ -24,21 +72,36 @@
             <tbody>
                 {% for order in orders %}
                 <tr>
-                    <td>#{{ order.id }}</td>
-                    <td>{{ order.buyer.username|default:"Guest" }}<br><small class="text-muted">{{ order.buyer.email }}</small></td>
-                    <td>₹{{ order.total_amount }}</td>
+                    <td class="ps-4 fw-bold text-primary">#{{ order.id }}</td>
                     <td>
-                        <span class="badge {% if order.payment_method == 'razorpay' %}bg-info{% elif order.payment_method == 'admin' %}bg-secondary{% else %}bg-light text-dark border{% endif %}">
-                            {{ order.get_payment_method_display }}
-                        </span>
+                        {{ order.buyer.username|default:"Guest" }}
+                        <div class="small text-muted">{{ order.buyer.email|default:"" }}</div>
+                    </td>
+                    <td class="fw-bold">₹{{ order.total_amount }}</td>
+                    <td>
+                        <div class="mb-1">
+                            <span class="badge {% if order.payment_method == 'razorpay' %}bg-info{% elif order.payment_method == 'admin' %}bg-secondary{% else %}bg-light text-dark border{% endif %}">
+                                {{ order.get_payment_method_display }}
+                            </span>
+                        </div>
+                        {% if order.transaction %}
+                            <div class="small text-muted" style="font-size: 0.72rem; line-height: 1.1;">
+                                <strong>Ref:</strong> {{ order.transaction.razorpay_order_id }}
+                            </div>
+                            {% if order.transaction.razorpay_payment_id %}
+                                <div class="small text-success" style="font-size: 0.72rem; line-height: 1.1;">
+                                    <strong>Pay:</strong> {{ order.transaction.razorpay_payment_id }}
+                                </div>
+                            {% endif %}
+                        {% endif %}
                     </td>
                     <td>
-                        <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                        <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %} px-3">
                             {{ order.status|title }}
                         </span>
                     </td>
-                    <td>{{ order.attendees.count }}</td>
-                    <td>{{ order.created_at|date:"M d, Y H:i" }}</td>
+                    <td class="text-center">{{ order.attendees.count }}</td>
+                    <td class="small">{{ order.created_at|date:"M d, Y" }}<br><span class="text-muted">{{ order.created_at|date:"h:i A" }}</span></td>
                 </tr>
                 {% empty %}
                 <tr>

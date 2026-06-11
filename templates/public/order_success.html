@@ -29,7 +29,7 @@
                                 <tbody>
                                     {% for attendee in order.attendees.all %}
                                     <tr>
-                                        <td>{{ attendee.name }}<br><small class="text-muted">{{ attendee.email }}</small></td>
+                                        <td>{{ attendee.first_name }} {{ attendee.last_name }}<br><small class="text-muted">{{ attendee.email }}</small></td>
                                         <td>{{ attendee.ticket.name }}</td>
                                         <td><span class="badge bg-success">Confirmed</span></td>
                                     </tr>

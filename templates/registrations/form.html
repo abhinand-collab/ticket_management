@@ -3,6 +3,13 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
+<!-- Add intl-tel-input CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/css/intlTelInput.css">
+<style>
+    .iti { width: 100%; }
+    .iti__flag-container { z-index: 5; }
+</style>
+
 <div class="mb-4">
     <h2>{{ title }}</h2>
 </div>
@@ -29,15 +36,27 @@
                         {% endif %}
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" name="name" 
-                               class="form-control {% if errors.name %}is-invalid{% endif %}" 
-                               value="{% if form_data.name %}{{ form_data.name }}{% elif registration %}{{ registration.name }}{% endif %}" 
-                               required>
-                        {% if errors.name %}
-                            <div class="invalid-feedback">{{ errors.name|join:", " }}</div>
-                        {% endif %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">First Name</label>
+                            <input type="text" name="first_name" 
+                                   class="form-control {% if errors.first_name %}is-invalid{% endif %}" 
+                                   value="{% if form_data.first_name %}{{ form_data.first_name }}{% elif registration %}{{ registration.first_name }}{% endif %}" 
+                                   required>
+                            {% if errors.first_name %}
+                                <div class="invalid-feedback">{{ errors.first_name|join:", " }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" name="last_name" 
+                                   class="form-control {% if errors.last_name %}is-invalid{% endif %}" 
+                                   value="{% if form_data.last_name %}{{ form_data.last_name }}{% elif registration %}{{ registration.last_name }}{% endif %}" 
+                                   required>
+                            {% if errors.last_name %}
+                                <div class="invalid-feedback">{{ errors.last_name|join:", " }}</div>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -53,12 +72,14 @@
 
                     <div class="mb-3">
                         <label class="form-label">Phone Number</label>
-                        <input type="text" name="phone" 
+                        <input type="tel" id="phone-input" name="phone_dummy" 
                                class="form-control {% if errors.phone %}is-invalid{% endif %}" 
                                value="{% if form_data.phone %}{{ form_data.phone }}{% elif registration %}{{ registration.phone }}{% endif %}" 
                                required placeholder="e.g. 9876543210">
+                        <input type="hidden" name="phone" id="phone-hidden" value="{% if form_data.phone %}{{ form_data.phone }}{% elif registration %}{{ registration.phone }}{% endif %}">
+                        <div id="phone-error" class="text-danger small mt-1 d-none">Invalid phone number for the selected country.</div>
                         {% if errors.phone %}
-                            <div class="invalid-feedback">{{ errors.phone|join:", " }}</div>
+                            <div class="invalid-feedback d-block">{{ errors.phone|join:", " }}</div>
                         {% endif %}
                     </div>
 
@@ -90,13 +111,58 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/intlTelInput.min.js"></script>
 <script>
-    document.getElementById('reg-form').addEventListener('submit', function() {
-        const btn = document.getElementById('submit-btn');
+    const phoneInput = document.querySelector("#phone-input");
+    const phoneHidden = document.querySelector("#phone-hidden");
+    const phoneError = document.querySelector("#phone-error");
+    const form = document.querySelector("#reg-form");
+    const submitBtn = document.getElementById('submit-btn');
+
+    const iti = window.intlTelInput(phoneInput, {
+        initialCountry: "in",
+        separateDialCode: true,
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.13/js/utils.js",
+    });
+
+    // IMPORTANT: Sync hidden field on load for Edit mode
+    if (phoneInput.value.trim()) {
+        phoneHidden.value = iti.getNumber();
+    }
+
+    const reset = () => {
+        phoneInput.classList.remove("is-invalid");
+        phoneError.classList.add("d-none");
+    };
+
+    phoneInput.addEventListener('blur', () => {
+        reset();
+        if (phoneInput.value.trim()) {
+            if (!iti.isValidNumber()) {
+                phoneInput.classList.add("is-invalid");
+                phoneError.classList.remove("d-none");
+            } else {
+                phoneHidden.value = iti.getNumber();
+            }
+        }
+    });
+
+    form.addEventListener('submit', function(e) {
+        reset();
+        if (!iti.isValidNumber()) {
+            e.preventDefault();
+            phoneInput.classList.add("is-invalid");
+            phoneError.classList.remove("d-none");
+            return;
+        }
+        
+        // Final sync
+        phoneHidden.value = iti.getNumber();
+
         const text = document.getElementById('btn-text');
         const spinner = document.getElementById('btn-spinner');
         
-        btn.disabled = true;
+        submitBtn.disabled = true;
         text.textContent = 'Saving...';
         spinner.classList.remove('d-none');
     });

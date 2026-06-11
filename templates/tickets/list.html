@@ -8,6 +8,37 @@
     <a href="{% url 'tickets:create' %}" class="btn btn-primary">Add Ticket</a>
 </div>
 
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search by name..." value="{{ query|default:'' }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="ticket_type" class="form-select">
+                    <option value="">All Ticket Types</option>
+                    <option value="free" {% if ticket_type == 'free' %}selected{% endif %}>Free</option>
+                    <option value="paid" {% if ticket_type == 'paid' %}selected{% endif %}>Paid</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="quantity_type" class="form-select">
+                    <option value="">All Quantity Types</option>
+                    <option value="limited" {% if quantity_type == 'limited' %}selected{% endif %}>Limited</option>
+                    <option value="unlimited" {% if quantity_type == 'unlimited' %}selected{% endif %}>Unlimited</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                <a href="{% url 'tickets:list' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         <table class="table table-hover">

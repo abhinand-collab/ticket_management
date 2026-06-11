@@ -9,7 +9,7 @@ class Ticket(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     quantity_type = models.CharField(max_length=20, choices=QUANTITY_TYPE_CHOICES)
     quantity = models.PositiveIntegerField(null=True, blank=True)  # only if limited
-    max_per_order = models.PositiveIntegerField(default=10, help_text="Maximum tickets allowed per single purchase.")
+    max_per_order = models.PositiveIntegerField(default=50, help_text="Maximum tickets allowed per single purchase.")
     duplicate_email_check = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -29,3 +29,19 @@ class Ticket(models.Model):
             return True
         slots = self.available_slots()
         return slots is None or slots > 0
+
+    @classmethod
+    def check_availability(cls, ticket_id, requested_qty):
+        """
+        Locks the ticket record and checks if the requested quantity is available.
+        Must be called within a transaction.
+        """
+        from django.db import transaction
+        ticket = cls.objects.select_for_update().get(id=ticket_id)
+        if ticket.quantity_type == 'unlimited':
+            return True, ticket
+        
+        available = ticket.available_slots()
+        if available is not None and requested_qty > available:
+            return False, ticket
+        return True, ticket

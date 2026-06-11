@@ -35,7 +35,8 @@ class Registration(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.PROTECT, related_name='registrations')
     
     # Attendee Details
-    name = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
     email = models.EmailField()
     phone = models.CharField(max_length=20)
     
@@ -52,4 +53,4 @@ class Registration(models.Model):
 
     def __str__(self):
         order_id = self.order.id if self.order else "N/A"
-        return f"{self.name} - Ticket: {self.ticket.name} (Order #{order_id})"
+        return f"{self.first_name} {self.last_name} - Ticket: {self.ticket.name} (Order #{order_id})"

@@ -4,16 +4,33 @@ from .models import Registration,RegistrationOrder
 from apps.tickets.models import Ticket
 import re
 
+import phonenumbers
+
 class RegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Registration
-        fields = ['ticket', 'name', 'email', 'phone', 'status']
+        fields = ['ticket', 'first_name', 'last_name', 'email', 'phone', 'status']
+
+    def validate_first_name(self, value):
+        if not re.match(r"^[a-zA-Z\s\-']+$", value):
+            raise serializers.ValidationError("First name should only contain letters, spaces, and hyphens.")
+        return value
+
+    def validate_last_name(self, value):
+        if not re.match(r"^[a-zA-Z\s\-']+$", value):
+            raise serializers.ValidationError("Last name should only contain letters, spaces, and hyphens.")
+        return value
 
     def validate_phone(self, value):
-        cleaned = re.sub(r'[\s\-\+]', '', value)
-        if not re.match(r'^[6-9]\d{9}$', cleaned):
-            raise serializers.ValidationError('Enter a valid 10-digit Indian phone number.')
-        return cleaned
+        try:
+            # Parse the number (expected in E.164 format like +919876543210)
+            parsed_number = phonenumbers.parse(value, None)
+            if not phonenumbers.is_valid_number(parsed_number):
+                raise serializers.ValidationError('Enter a valid phone number for your country.')
+            # Normalize to E.164 format
+            return phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
+        except phonenumbers.NumberParseException:
+            raise serializers.ValidationError('Invalid phone number format.')
 
     def validate_email(self, value):
         return value.strip().lower()
@@ -61,13 +78,26 @@ class RegistrationSerializer(serializers.ModelSerializer):
 class PublicRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Registration
-        fields = ['ticket', 'name', 'email', 'phone']
+        fields = ['ticket', 'first_name', 'last_name', 'email', 'phone']
+
+    def validate_first_name(self, value):
+        if not re.match(r"^[a-zA-Z\s\-']+$", value):
+            raise serializers.ValidationError("First name should only contain letters, spaces, and hyphens.")
+        return value
+
+    def validate_last_name(self, value):
+        if not re.match(r"^[a-zA-Z\s\-']+$", value):
+            raise serializers.ValidationError("Last name should only contain letters, spaces, and hyphens.")
+        return value
 
     def validate_phone(self, value):
-        cleaned = re.sub(r'[\s\-\+]', '', value)
-        if not re.match(r'^[6-9]\d{9}$', cleaned):
-            raise serializers.ValidationError('Enter a valid 10-digit Indian phone number.')
-        return cleaned
+        try:
+            parsed_number = phonenumbers.parse(value, None)
+            if not phonenumbers.is_valid_number(parsed_number):
+                raise serializers.ValidationError('Enter a valid phone number for your country.')
+            return phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
+        except phonenumbers.NumberParseException:
+            raise serializers.ValidationError('Invalid phone number format.')
 
     def validate_email(self, value):
         return value.strip().lower()
@@ -160,6 +190,21 @@ class PublicRegistrationOrderSerializer(serializers.Serializer):
         user = self.context.get('user')
         buyer = user if user and user.is_authenticated else None
         
+        # Group requested quantities per ticket
+        ticket_qtys = {}
+        for attendee in attendees_data:
+            t_id = attendee['ticket'].id
+            ticket_qtys[t_id] = ticket_qtys.get(t_id, 0) + 1
+        
+        # Perform final availability check with locking (Sorted by ID to prevent deadlocks)
+        for t_id in sorted(ticket_qtys.keys()):
+            qty = ticket_qtys[t_id]
+            is_available, ticket = Ticket.check_availability(t_id, qty)
+            if not is_available:
+                raise serializers.ValidationError(
+                    f"Sorry, {ticket.name} just sold out or doesn't have enough slots."
+                )
+
         total_amount = sum(item['ticket'].price for item in attendees_data)
         
         order = RegistrationOrder.objects.create(

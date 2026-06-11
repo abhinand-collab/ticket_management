@@ -117,7 +117,8 @@ def register_form(request):
         for i in sorted(list(indices)):
             attendees.append({
                 'ticket': request.POST.get(f'attendee_{i}_ticket'),
-                'name': request.POST.get(f'attendee_{i}_name'),
+                'first_name': request.POST.get(f'attendee_{i}_first_name'),
+                'last_name': request.POST.get(f'attendee_{i}_last_name'),
                 'email': request.POST.get(f'attendee_{i}_email'),
                 'phone': request.POST.get(f'attendee_{i}_phone'),
             })

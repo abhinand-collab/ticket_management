@@ -8,64 +8,171 @@
     <a href="{% url 'registrations:create' %}" class="btn btn-primary">Add Registration</a>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Ticket</th>
-                    <th>Price</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Payment Method</th>
-                    <th>Payment Status</th>
-                    <th>Order ID</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for reg in registrations %}
-                <tr>
-                    <td>#{{ reg.id }}</td>
-                    <td>{{ reg.ticket.name }}</td>
-                    <td>₹{{ reg.ticket.price }}</td>
-                    <td>{{ reg.name }}</td>
-                    <td>{{ reg.email }}</td>
-                    <td>{{ reg.phone }}</td>
-                    <td>
-                        <span class="badge {% if reg.order.payment_method == 'razorpay' %}bg-info{% elif reg.order.payment_method == 'admin' %}bg-secondary{% else %}bg-light text-dark border{% endif %}">
-                            {{ reg.order.get_payment_method_display }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if reg.order.transaction %}
-                            <span class="badge {% if reg.order.transaction.status == 'paid' %}bg-success{% elif reg.order.transaction.status == 'created' %}bg-info{% else %}bg-danger{% endif %}">
-                                {{ reg.order.transaction.status|title }}
-                            </span>
-                        {% else %}
-                            <span class="text-muted">N/A</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <small class="text-muted">{{ reg.order.transaction.razorpay_order_id|default:"Manual/Free" }}</small>
-                    </td>
-                    <td>
-                        <a href="{% url 'registrations:edit' reg.pk %}" class="btn btn-sm btn-outline-warning">Edit</a>
-                        <a href="{% url 'registrations:delete' reg.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
-                    </td>
-                </tr>
-{% empty %}
+<!-- Advanced Filters -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body bg-light rounded">
+        <form method="GET" class="row g-3">
+            <!-- Text Search -->
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Name, Email, Phone, Order ID..." value="{{ filters.search }}">
+            </div>
 
-                <tr>
-                    <td colspan="10" class="text-center text-muted">No registrations found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            <!-- Ticket Filter -->
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Ticket Type</label>
+                <select name="ticket" class="form-select">
+                    <option value="">All Tickets</option>
+                    {% for ticket in tickets %}
+                        <option value="{{ ticket.id }}" {% if filters.ticket == ticket.id|stringformat:"s" %}selected{% endif %}>
+                            {{ ticket.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Status</label>
+                <select name="status" class="form-select">
+                    <option value="all" {% if filters.status == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="failed" {% if filters.status == 'failed' %}selected{% endif %}>Failed</option>
+                    <option value="abandoned" {% if filters.status == 'abandoned' %}selected{% endif %}>Abandoned</option>
+                    <option value="incomplete" {% if filters.status == 'incomplete' %}selected{% endif %}>Incomplete/Missed</option>
+                </select>
+            </div>
+
+            <!-- Payment Method Filter -->
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Payment Method</label>
+                <select name="payment_method" class="form-select">
+                    <option value="">All Methods</option>
+                    {% for val, label in payment_methods %}
+                        <option value="{{ val }}" {% if filters.payment_method == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date Range -->
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Date Range</label>
+                <div class="input-group">
+                    <input type="date" name="date_from" class="form-control form-control-sm" value="{{ filters.date_from }}">
+                    <span class="input-group-text">to</span>
+                    <input type="date" name="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}">
+                </div>
+            </div>
+
+            <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+                <a href="{% url 'registrations:list' %}" class="btn btn-outline-secondary px-4">Clear All</a>
+                <button type="submit" class="btn btn-primary px-4">Apply Filters</button>
+            </div>
+        </form>
     </div>
 </div>
 
-{% include 'includes/pagination.html' with page_obj=registrations %}
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Attendee</th>
+                        <th>Ticket</th>
+                        <th>Amount</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th class="pe-4 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in registrations %}
+                    <tr>
+                        <td class="ps-4">#{{ reg.id }}</td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ reg.first_name }} {{ reg.last_name }}</div>
+                            <div class="small text-muted">{{ reg.email }}</div>
+                            <div class="small text-muted">{{ reg.phone }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ reg.ticket.name }}</span>
+                        </td>
+                        <td>₹{{ reg.ticket.price }}</td>
+                        <td>
+                            <div class="small mb-1">
+                                <span class="badge {% if reg.order.payment_method == 'razorpay' %}bg-info{% elif reg.order.payment_method == 'admin' %}bg-secondary{% else %}bg-light text-dark border{% endif %}">
+                                    {{ reg.order.get_payment_method_display }}
+                                </span>
+                            </div>
+                            {% if reg.order.transaction %}
+                                <div class="small text-muted" style="font-size: 0.72rem; line-height: 1.1;">
+                                    <strong>O:</strong> {{ reg.order.transaction.razorpay_order_id }}
+                                </div>
+                                {% if reg.order.transaction.razorpay_payment_id %}
+                                <div class="small text-success fw-bold" style="font-size: 0.72rem; line-height: 1.1;">
+                                    <strong>P:</strong> {{ reg.order.transaction.razorpay_payment_id }}
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if reg.status == 'completed' %}bg-success{% elif reg.status == 'pending' %}bg-warning{% elif reg.status == 'failed' %}bg-danger{% else %}bg-secondary{% endif %} px-3">
+                                {{ reg.status|title }}
+                            </span>
+                        </td>
+                        <td class="small">{{ reg.created_at|date:"d M Y, h:i A" }}</td>
+                        <td class="pe-4 text-end">
+                            <div class="btn-group">
+                                <a href="{% url 'activity_logs:registration_logs' reg.pk %}" class="btn btn-sm btn-outline-info" title="History">
+                                    <i class="bi bi-clock-history"></i> Log
+                                </a>
+                                <a href="{% url 'registrations:edit' reg.pk %}" class="btn btn-sm btn-outline-warning">Edit</a>
+                                <a href="{% url 'registrations:delete' reg.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <div class="mb-2"><i class="bi bi-search" style="font-size: 2rem;"></i></div>
+                            No registrations match your search criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination with filter preservation -->
+{% if registrations.has_other_pages %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if registrations.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ registrations.previous_page_number }}&search={{ filters.search }}&status={{ filters.status }}&ticket={{ filters.ticket }}&payment_method={{ filters.payment_method }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">Previous</a>
+            </li>
+        {% endif %}
+        
+        {% for num in registrations.paginator.page_range %}
+            {% if num > registrations.number|add:'-3' and num < registrations.number|add:'3' %}
+                <li class="page-item {% if registrations.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}&search={{ filters.search }}&status={{ filters.status }}&ticket={{ filters.ticket }}&payment_method={{ filters.payment_method }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if registrations.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ registrations.next_page_number }}&search={{ filters.search }}&status={{ filters.status }}&ticket={{ filters.ticket }}&payment_method={{ filters.payment_method }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">Next</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}
