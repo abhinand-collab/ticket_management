@@ -134,13 +134,22 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# This ensures WhiteNoise compresses and caches your static files cleanly
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -157,9 +166,23 @@ MESSAGE_TAGS = {
 # Global ticket limits
 MAX_TOTAL_TICKETS_PER_ORDER = 100
 
-# Set DEBUG to False in production, True locally
-DEBUG = 'RENDER' not in os.environ
+# --- RENDER PRODUCTION CONFIGURATION ---
+# This safely handles dynamic values using your existing 'env' setup
+
+# 1. Handle DEBUG safely
+if 'RENDER' in os.environ:
+    DEBUG = False
+else:
+    DEBUG = env.bool('DEBUG', default=True)
+
+# 2. Handle ALLOWED_HOSTS dynamically
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
+# Pull any extra hosts you specified in Render's dashboard environment variables
+if env.list('ALLOWED_HOSTS', default=[]):
+    ALLOWED_HOSTS.extend(env.list('ALLOWED_HOSTS'))
+
+# Automatically append Render's assigned live URL
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
