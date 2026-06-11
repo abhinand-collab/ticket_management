@@ -138,6 +138,11 @@ def register_form(request):
             # Security: Whitelist this order ID in the session for the success page
             request.session['last_order_id'] = order.id
 
+            # Log registration creation for free tickets immediately
+            if order.total_amount == 0:
+                from apps.activity_logs.utils import log_action
+                log_action(order.buyer, 'registration_create', order, request)
+
             redirect_url = reverse('payments:checkout', kwargs={'order_id': order.id}) if order.total_amount > 0 else reverse('public:order_success', kwargs={'order_uuid': order.uuid})
             
             if is_ajax: return JsonResponse({'success': True, 'redirect_url': redirect_url})

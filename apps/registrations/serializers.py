@@ -206,19 +206,21 @@ class PublicRegistrationOrderSerializer(serializers.Serializer):
                 )
 
         total_amount = sum(item['ticket'].price for item in attendees_data)
+        is_free = (total_amount == 0)
+        status = 'completed' if is_free else 'pending'
         
         order = RegistrationOrder.objects.create(
             buyer=buyer,
             total_amount=total_amount,
             payment_method='razorpay' if total_amount > 0 else 'free',
-            status='pending'
+            status=status
         )
 
         for attendee_data in attendees_data:
             Registration.objects.create(
                 order=order,
                 **attendee_data,
-                status='pending'
+                status=status
             )
         
         return order
