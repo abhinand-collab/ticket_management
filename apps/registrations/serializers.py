@@ -41,32 +41,20 @@ class RegistrationSerializer(serializers.ModelSerializer):
         
         # Check ticket availability
         if ticket and not ticket.is_available():
-            # If editing existing, we should account for its own slot
             if not self.instance or self.instance.ticket != ticket:
                 raise serializers.ValidationError({'ticket': 'This ticket is sold out.'})
 
         # Cross-ticket Duplicate Email Logic:
-        # 1. If CURRENT ticket is strict, block if email exists ANYWHERE
         if ticket and ticket.duplicate_email_check:
-            exists_query = Registration.objects.filter(
-                email=email,
-                is_active=True,
-                status__in=['pending', 'completed']
-            )
+            exists_query = Registration.objects.active(email=email)
             if self.instance:
                 exists_query = exists_query.exclude(pk=self.instance.pk)
             
             if exists_query.exists():
-                raise serializers.ValidationError({'email': 'This email is already registered for a ticket.'})
+                raise serializers.ValidationError({'email': 'This email is already registered for an active ticket.'})
         
-        # 2. If CURRENT ticket is flexible, block if email exists for a STRICT ticket
         elif ticket:
-            exists_query = Registration.objects.filter(
-                email=email,
-                ticket__duplicate_email_check=True,
-                is_active=True,
-                status__in=['pending', 'completed']
-            )
+            exists_query = Registration.objects.active(email=email, ticket__duplicate_email_check=True)
             if self.instance:
                 exists_query = exists_query.exclude(pk=self.instance.pk)
                 
@@ -109,22 +97,13 @@ class PublicRegistrationSerializer(serializers.ModelSerializer):
         # Check database for cross-ticket conflicts
         # 1. Strict tickets block any prior registration of this email
         if ticket and ticket.duplicate_email_check:
-            exists = Registration.objects.filter(
-                email=email,
-                is_active=True,
-                status__in=['pending', 'completed']
-            ).exists()
+            exists = Registration.objects.active(email=email).exists()
             if exists:
-                raise serializers.ValidationError({'email': 'This email is already registered for a ticket.'})
+                raise serializers.ValidationError({'email': 'This email is already registered for an active ticket.'})
         
         # 2. Flexible tickets block if email was previously used for a STRICT ticket
         elif ticket:
-            exists = Registration.objects.filter(
-                email=email,
-                ticket__duplicate_email_check=True,
-                is_active=True,
-                status__in=['pending', 'completed']
-            ).exists()
+            exists = Registration.objects.active(email=email, ticket__duplicate_email_check=True).exists()
             if exists:
                 raise serializers.ValidationError({'email': 'This email is already used for a restricted ticket type.'})
                 

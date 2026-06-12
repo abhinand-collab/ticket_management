@@ -165,6 +165,24 @@ MESSAGE_TAGS = {
 
 # Global ticket limits
 MAX_TOTAL_TICKETS_PER_ORDER = 100
+PENDING_REGISTRATION_EXPIRY_MINUTES = 10
+
+# Celery Settings
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# Celery Beat Schedule
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'cleanup-expired-registrations-every-minute': {
+        'task': 'apps.registrations.tasks.cleanup_expired_registrations',
+        'schedule': crontab(minute='*'),
+    },
+}
 
 # --- RENDER PRODUCTION CONFIGURATION ---
 # This safely handles dynamic values using your existing 'env' setup

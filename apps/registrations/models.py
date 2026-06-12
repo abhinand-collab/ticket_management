@@ -25,6 +25,25 @@ class RegistrationOrder(models.Model):
     def __str__(self):
         return f"Order #{self.id} - Buyer: {self.buyer.username if self.buyer else 'Guest'}"
 
+class RegistrationManager(models.Manager):
+    def active(self, **kwargs):
+        """
+        Returns registrations that are either completed OR pending and not yet expired.
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.conf import settings
+        from django.db.models import Q
+        
+        expiry_minutes = getattr(settings, 'PENDING_REGISTRATION_EXPIRY_MINUTES', 10)
+        expiry_threshold = timezone.now() - timedelta(minutes=expiry_minutes)
+        
+        return self.filter(
+            Q(is_active=True) &
+            (Q(status='completed') | Q(status='pending', created_at__gte=expiry_threshold)),
+            **kwargs
+        )
+
 class Registration(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -32,6 +51,8 @@ class Registration(models.Model):
         ('failed', 'Failed'),
         ('abandoned', 'Abandoned'),
     ]
+
+    objects = RegistrationManager()
 
     order = models.ForeignKey(RegistrationOrder, on_delete=models.CASCADE, related_name='attendees', null=True, blank=True)
     ticket = models.ForeignKey(Ticket, on_delete=models.PROTECT, related_name='registrations')
