@@ -59,7 +59,7 @@ def ticket_edit(request, pk):
     old_data = {
         'name': str(ticket.name),
         'ticket_type': str(ticket.ticket_type),
-        'price': str(ticket.price),
+        'price': f"{ticket.price:.2f}" if ticket.price is not None else "0.00",
         'quantity_type': str(ticket.quantity_type),
         'quantity': str(ticket.quantity),
         'max_per_order': str(ticket.max_per_order),
@@ -76,7 +76,7 @@ def ticket_edit(request, pk):
             new_data = {
                 'name': str(ticket.name),
                 'ticket_type': str(ticket.ticket_type),
-                'price': str(ticket.price),
+                'price': f"{ticket.price:.2f}" if ticket.price is not None else "0.00",
                 'quantity_type': str(ticket.quantity_type),
                 'quantity': str(ticket.quantity),
                 'max_per_order': str(ticket.max_per_order),
