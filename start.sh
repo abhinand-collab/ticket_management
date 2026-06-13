@@ -7,4 +7,4 @@ python manage.py collectstatic --noinput &&
 celery -A config worker --loglevel=info &
 celery -A config beat --loglevel=info &
 
-gunicorn config.wsgi:application
+gunicorn config.wsgi:application --workers 1
