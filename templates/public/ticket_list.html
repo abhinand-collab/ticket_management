@@ -31,7 +31,7 @@
                             {% else %}
                                 {% with wait_time=ticket.get_next_available_time %}
                                     {% if wait_time > 0 %}
-                                        <span class="text-warning">Held for payment. Check back in {{ wait_time }} min.</span>
+                                        <span class="text-warning">Pending Payment (Check back in {{ wait_time }} min.)</span>
                                     {% else %}
                                         <span class="text-danger">Sold Out</span>
                                     {% endif %}
