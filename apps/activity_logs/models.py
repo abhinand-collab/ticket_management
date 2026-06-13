@@ -11,6 +11,7 @@ class ActivityLog(models.Model):
         ('registration_create', 'Registration Created'),
         ('registration_edit', 'Registration Edited'),
         ('registration_delete', 'Registration Deleted'),
+        ('registration_cleanup', 'Registration Auto-Cleanup'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
